@@ -213,6 +213,8 @@
              <div class="flex justify-between items-center mb-4">
                 <div>
                     <h2 class="text-xl font-bold text-white">Chat with <span id="recipient-display"></span></h2>
+                    <!-- FIX: Added this line back in -->
+                    <p class="text-sm text-gray-400">You are <span id="user-display" class="text-accent"></span></p>
                     <div id="online-status-container" class="flex items-center">
                         <span id="online-status-dot" class="status-dot status-offline"></span>
                         <span id="online-status-text" class="text-sm text-gray-400">Offline</span>
@@ -642,8 +644,13 @@
                 // MODIFIED: Better error handling
                 if (error.message === 'User cancelled prompt.') {
                     resultsEl.innerHTML = `<p class="text-red-400">Chat cancelled.</p>`;
+                } else if (optionalSecret) {
+                    // This was a "Recent Chat" click and it failed.
+                    resultsEl.innerHTML = `<p class="text-red-400">The saved code for this user is incorrect. It's been removed. Please search for them again.</p>`;
+                    deleteRecentChat(recipient.uid); // Delete the bad recent chat
                 } else {
-                    resultsEl.innerHTML = `<p class="text-red-400">Could not start chat. A crypto error occurred.</p>`;
+                    // This was a manual search and the code was wrong.
+                    resultsEl.innerHTML = `<p class="text-red-400">Could not start chat. The code you entered is incorrect.</p>`;
                 }
             }
         }
@@ -667,6 +674,14 @@
             // Keep only the last 5 recents
             chats = chats.slice(0, 5);
             localStorage.setItem('recentChats', JSON.stringify(chats));
+        }
+
+        // NEW function to remove a single recent chat
+        function deleteRecentChat(uid) {
+            let chats = getRecentChats();
+            chats = chats.filter(chat => chat.uid !== uid);
+            localStorage.setItem('recentChats', JSON.stringify(chats));
+            displayRecentChats(); // Refresh the list
         }
 
         function displayRecentChats() {
@@ -812,7 +827,6 @@
     </script>
 </body>
 </html>
-
 
 
 
