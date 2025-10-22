@@ -285,7 +285,8 @@
             const baseKey = await window.crypto.subtle.importKey(
                 "raw",
                 encoder.encode(password),
-                { name: "PBK2" },
+                // FIX: Was "PBK2", corrected to "PBKDF2"
+                { name: "PBKDF2" },
                 false,
                 ["deriveKey"]
             );
@@ -562,5 +563,6 @@
     </script>
 </body>
 </html>
+
 
 
