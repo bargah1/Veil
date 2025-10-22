@@ -2,62 +2,102 @@
 <html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale-1.0">
-    <title>Ephemeral E2EE Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veil</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Source+Code+Pro:wght@400;500&display=swap');
+        
+        /* New Color Theme */
+        :root {
+            --primary: #0C0C0C;
+            --secondary: #181818;
+            --accent: #7A3E9D;
+            --text: #ECECEC;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827; /* bg-gray-900 */
-            color: #d1d5db; /* text-gray-300 */
+            background-color: var(--primary); /* Jet black */
+            color: var(--text); /* Off-white */
         }
         .chat-textarea {
             font-family: 'Source Code Pro', monospace;
-            background-color: #1f2937; /* bg-gray-800 */
-            color: #e5e7eb; /* text-gray-200 */
-            border-color: #4b5563; /* border-gray-600 */
-            caret-color: #34d399; /* emerald-400 */
+            background-color: var(--secondary); /* Matte dark gray */
+            color: var(--text);
+            border-color: #4b5563; /* Keep a subtle border */
+            caret-color: var(--accent); /* Dark violet glow */
             transition: all 0.2s ease-in-out;
         }
         .chat-textarea:focus {
             outline: none;
-            border-color: #34d399; /* emerald-400 */
-            box-shadow: 0 0 0 2px #1f2937, 0 0 0 4px #34d399;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--secondary), 0 0 0 4px var(--accent);
         }
         .btn {
             transition: all 0.2s ease-in-out;
+            border-radius: 0.375rem; /* rounded-md */
         }
         .btn-primary {
-            background-color: #10b981; /* emerald-500 */
-            color: white;
+            background-color: var(--accent);
+            color: var(--text);
         }
         .btn-primary:hover {
-            background-color: #059669; /* emerald-600 */
+            opacity: 0.85;
         }
         .btn-secondary {
-            background-color: #4b5563; /* gray-600 */
-            color: white;
+            background-color: #374151; /* A bit lighter than secondary for contrast */
+            color: var(--text);
         }
         .btn-secondary:hover {
-            background-color: #6b7280; /* gray-500 */
+            background-color: #4b5563;
         }
         .input-field {
-            background-color: #374151; /* bg-gray-700 */
-            border-color: #4b5563; /* border-gray-600 */
+            background-color: var(--secondary); /* Matte dark gray */
+            border-color: #4b5563; /* Subtle border */
+            color: var(--text);
         }
         .input-field:focus {
              outline: none;
-            border-color: #34d399; /* emerald-400 */
-            box-shadow: 0 0 0 2px #1f2937, 0 0 0 4px #34d399;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--secondary), 0 0 0 4px var(--accent);
         }
         #loading-spinner, .spinner {
-            border-top-color: #10b981;
+            border-top-color: var(--accent);
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        /* Update card backgrounds */
+        .card-bg {
+             background-color: var(--secondary);
+        }
+        /* Update link colors */
+        .link {
+            color: var(--accent);
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+        /* Update specific UI elements */
+        #dashboard-username {
+            color: var(--accent);
+        }
+        #recipient-display {
+            color: var(--accent);
+        }
+        #user-display {
+            color: var(--accent);
+        }
+        .btn-danger {
+            background-color: #dc2626; /* red-600 */
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #b91c1c; /* red-700 */
+        }
+
     </style>
 </head>
 <body class="h-full flex items-center justify-center p-4">
@@ -71,8 +111,8 @@
 
         <!-- Auth Screen -->
         <div id="auth-screen" class="hidden">
-            <div class="bg-gray-800 p-8 rounded-lg shadow-2xl">
-                <h1 class="text-3xl font-bold text-white mb-6 text-center">Ephemeral Chat</h1>
+            <div class="card-bg p-8 rounded-lg shadow-2xl">
+                <h1 class="text-3xl font-bold text-white mb-6 text-center">Veil</h1>
                 <!-- Sign Up Form -->
                 <div id="signup-form" class="space-y-4">
                     <h2 class="text-xl text-white font-semibold">Create an Account</h2>
@@ -85,7 +125,7 @@
                         <input type="password" id="signup-password" class="input-field w-full p-2 mt-1 rounded-md" placeholder="6+ characters">
                     </div>
                     <button id="signup-btn" class="btn btn-primary w-full py-2 rounded-md font-semibold">Sign Up</button>
-                    <p class="text-center text-sm text-gray-400">Already have an account? <a href="#" id="show-login" class="text-emerald-400 hover:underline">Log In</a></p>
+                    <p class="text-center text-sm text-gray-400">Already have an account? <a href="#" id="show-login" class="link hover:underline">Log In</a></p>
                 </div>
                 <!-- Login Form -->
                 <div id="login-form" class="hidden space-y-4">
@@ -99,7 +139,7 @@
                         <input type="password" id="login-password" class="input-field w-full p-2 mt-1 rounded-md" placeholder="Your password">
                     </div>
                     <button id="login-btn" class="btn btn-primary w-full py-2 rounded-md font-semibold">Log In</button>
-                    <p class="text-center text-sm text-gray-400">Don't have an account? <a href="#" id="show-signup" class="text-emerald-400 hover:underline">Sign Up</a></p>
+                    <p class="text-center text-sm text-gray-400">Don't have an account? <a href="#" id="show-signup" class="link hover:underline">Sign Up</a></p>
                 </div>
                 <div id="auth-error" class="text-red-400 text-sm mt-4 text-center"></div>
             </div>
@@ -107,10 +147,10 @@
 
         <!-- Dashboard Screen -->
         <div id="dashboard-screen" class="hidden">
-             <div class="bg-gray-800 p-8 rounded-lg shadow-2xl">
+             <div class="card-bg p-8 rounded-lg shadow-2xl">
                 <div class="flex justify-between items-center mb-6">
                     <div>
-                        <h1 class="text-2xl font-bold text-white">Welcome, <span id="dashboard-username" class="text-emerald-400"></span></h1>
+                        <h1 class="text-2xl font-bold text-white">Welcome, <span id="dashboard-username"></span></h1>
                         <!-- We still generate the code, but it's just for user ID, not encryption -->
                         <p class="text-gray-400">Your Unique Code (share this with friends): <strong id="dashboard-usercode" class="text-amber-400 font-mono"></strong></p>
                     </div>
@@ -133,12 +173,12 @@
         <div id="chat-screen" class="hidden h-[80vh] flex flex-col">
              <div class="flex justify-between items-center mb-4">
                 <div>
-                    <h2 class="text-xl font-bold text-white">Chat with <span id="recipient-display" class="font-mono text-emerald-400"></span></h2>
-                    <p class="text-sm text-gray-400">You are <span id="user-display" class="font-mono text-emerald-400"></span>. Your connection is private & encrypted.</p>
+                    <h2 class="text-xl font-bold text-white">Chat with <span id="recipient-display"></span></h2>
+                    <p class="text-sm text-gray-400">You are <span id="user-display"></span>. Your connection is private & encrypted.</p>
                 </div>
                 <div>
                     <button id="clear-btn" class="btn btn-secondary px-4 py-2 rounded-md font-semibold mr-2">Clear</button>
-                    <button id="back-to-dashboard-btn" class="btn btn-primary bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md font-semibold">Leave</button>
+                    <button id="back-to-dashboard-btn" class="btn btn-danger px-4 py-2 rounded-md font-semibold">Leave</button>
                 </div>
             </div>
             <textarea id="chat-box" class="chat-textarea w-full flex-grow p-4 rounded-lg text-lg leading-7 resize-none" spellcheck="false"></textarea>
@@ -148,7 +188,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, onSnapshot, setDoc, collection, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, setDoc, collection, query, where, getDocs, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // ----------------------------------------------------------------------
@@ -199,6 +239,9 @@
                         currentUser = { uid: user.uid, ...userProfile };
                         showDashboard();
                     } else {
+                        // This can happen if auth succeeds but firestore profile is missing
+                        // Forcing logout to prevent app from getting stuck
+                        console.warn("User authenticated but profile data is missing. Logging out.");
                         signOut(auth);
                     }
                 } else {
@@ -242,7 +285,7 @@
             const baseKey = await window.crypto.subtle.importKey(
                 "raw",
                 encoder.encode(password),
-                { name: "PBKDF2" },
+                { name: "PBK2" },
                 false,
                 ["deriveKey"]
             );
@@ -297,10 +340,11 @@
         
         // --- Auth & User Profile Functions ---
         async function getUserProfile(uid) {
+            // Corrected: Directly get the document by its ID (which is the uid)
             const userRef = doc(db, `/artifacts/${appId}/public/data/users`, uid);
-            const docSnap = await getDocs(query(collection(db, `/artifacts/${appId}/public/data/users`), where("uid", "==", uid)));
-            if (!docSnap.empty) {
-                return docSnap.docs[0].data();
+            const docSnap = await getDoc(userRef); // Use getDoc, not getDocs
+            if (docSnap.exists()) {
+                return docSnap.data();
             }
             return null;
         }
@@ -353,19 +397,23 @@
             if (!existingUsers.empty) {
                 errorEl.textContent = 'Username is already taken.';
                 return;
+
             }
             
             try {
+                // We create a dummy email for Firebase Auth, as it requires it
                 const dummyEmail = `${username}@e2ee-chat.app`;
                 const userCredential = await createUserWithEmailAndPassword(auth, dummyEmail, password);
                 const user = userCredential.user;
 
+                // We store the *real* username and our code in Firestore
                 const userProfile = {
                     uid: user.uid,
                     username: username,
                     uniqueCode: generateUniqueCode()
                 };
                 await setDoc(doc(db, `/artifacts/${appId}/public/data/users`, user.uid), userProfile);
+                // Auth state change will now handle showing the dashboard
 
             } catch (error) {
                 errorEl.textContent = 'Error creating account: ' + error.message;
@@ -384,8 +432,10 @@
             }
 
             try {
+                // Use the same dummy email convention to log in
                 const dummyEmail = `${username}@e2ee-chat.app`;
                 await signInWithEmailAndPassword(auth, dummyEmail, password);
+                // Auth state change will now handle showing the dashboard
             } catch (error) {
                 errorEl.textContent = 'Invalid username or password.';
             }
@@ -396,7 +446,6 @@
             const resultsEl = document.getElementById('search-results');
             resultsEl.innerHTML = '<div class="spinner w-6 h-6 border-2 border-gray-600 rounded-full mx-auto"></div>';
 
-Input:
             if (!searchUsername) {
                 resultsEl.innerHTML = '<p class="text-gray-400">Please enter a username to search.</p>';
                 return;
@@ -432,6 +481,7 @@ Input:
             }
 
             const secret = theirCode.trim();
+            // Create a deterministic, sorted room ID
             const codes = [currentUser.username, recipient.username].sort();
             currentRoomId = codes.join('-');
 
@@ -459,6 +509,7 @@ Input:
             }
         }
 
+// This function is called by 'Clear' and 'Leave'
         function handleLeaveChat() {
             if (unsubscribeRoom) unsubscribeRoom();
             
@@ -511,8 +562,5 @@ Input:
     </script>
 </body>
 </html>
-
-
-
 
 
