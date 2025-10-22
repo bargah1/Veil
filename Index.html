@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <title>Ephemeral E2EE Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Source+Code+Pro:wght@400;500&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+            color: #d1d5db; /* text-gray-300 */
+        }
+        .chat-textarea {
+            font-family: 'Source Code Pro', monospace;
+            background-color: #1f2937; /* bg-gray-800 */
+            color: #e5e7eb; /* text-gray-200 */
+            border-color: #4b5563; /* border-gray-600 */
+            caret-color: #34d399; /* emerald-400 */
+            transition: all 0.2s ease-in-out;
+        }
+        .chat-textarea:focus {
+            outline: none;
+            border-color: #34d399; /* emerald-400 */
+            box-shadow: 0 0 0 2px #1f2937, 0 0 0 4px #34d399;
+        }
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-primary {
+            background-color: #10b981; /* emerald-500 */
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #059669; /* emerald-600 */
+        }
+        .btn-secondary {
+            background-color: #4b5563; /* gray-600 */
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #6b7280; /* gray-500 */
+        }
+        .input-field {
+            background-color: #374151; /* bg-gray-700 */
+            border-color: #4b5563; /* border-gray-600 */
+        }
+        .input-field:focus {
+             outline: none;
+            border-color: #34d399; /* emerald-400 */
+            box-shadow: 0 0 0 2px #1f2937, 0 0 0 4px #34d399;
+        }
+        #loading-spinner, .spinner {
+            border-top-color: #10b981;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="h-full flex items-center justify-center p-4">
+
+    <div id="app-container" class="w-full max-w-4xl mx-auto">
+        
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="flex justify-center items-center h-full">
+            <div class="spinner w-12 h-12 border-4 border-gray-600 rounded-full"></div>
+        </div>
+
+        <!-- Auth Screen -->
+        <div id="auth-screen" class="hidden">
+            <div class="bg-gray-800 p-8 rounded-lg shadow-2xl">
+                <h1 class="text-3xl font-bold text-white mb-6 text-center">Ephemeral Chat</h1>
+                <!-- Sign Up Form -->
+                <div id="signup-form" class="space-y-4">
+                    <h2 class="text-xl text-white font-semibold">Create an Account</h2>
+                    <div>
+                        <label for="signup-username" class="block text-sm font-medium text-gray-300">Username</label>
+                        <input type="text" id="signup-username" class="input-field w-full p-2 mt-1 rounded-md" placeholder="Choose a unique username">
+                    </div>
+                    <div>
+                        <label for="signup-password" class="block text-sm font-medium text-gray-300">Password</label>
+                        <input type="password" id="signup-password" class="input-field w-full p-2 mt-1 rounded-md" placeholder="6+ characters">
+                    </div>
+                    <button id="signup-btn" class="btn btn-primary w-full py-2 rounded-md font-semibold">Sign Up</button>
+                    <p class="text-center text-sm text-gray-400">Already have an account? <a href="#" id="show-login" class="text-emerald-400 hover:underline">Log In</a></p>
+                </div>
+                <!-- Login Form -->
+                <div id="login-form" class="hidden space-y-4">
+                    <h2 class="text-xl text-white font-semibold">Welcome Back</h2>
+                     <div>
+                        <label for="login-username" class="block text-sm font-medium text-gray-300">Username</label>
+                        <input type="text" id="login-username" class="input-field w-full p-2 mt-1 rounded-md" placeholder="Your username">
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-gray-300">Password</label>
+                        <input type="password" id="login-password" class="input-field w-full p-2 mt-1 rounded-md" placeholder="Your password">
+                    </div>
+                    <button id="login-btn" class="btn btn-primary w-full py-2 rounded-md font-semibold">Log In</button>
+                    <p class="text-center text-sm text-gray-400">Don't have an account? <a href="#" id="show-signup" class="text-emerald-400 hover:underline">Sign Up</a></p>
+                </div>
+                <div id="auth-error" class="text-red-400 text-sm mt-4 text-center"></div>
+            </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboard-screen" class="hidden">
+             <div class="bg-gray-800 p-8 rounded-lg shadow-2xl">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Welcome, <span id="dashboard-username" class="text-emerald-400"></span></h1>
+                        <!-- We still generate the code, but it's just for user ID, not encryption -->
+                        <p class="text-gray-400">Your Unique Code (share this with friends): <strong id="dashboard-usercode" class="text-amber-400 font-mono"></strong></p>
+                    </div>
+                    <button id="logout-btn" class="btn btn-secondary px-4 py-2 rounded-md font-semibold">Logout</button>
+                </div>
+                <div class="space-y-4">
+                     <div>
+                        <label for="search-username" class="block text-sm font-medium text-gray-300">Search for a user to chat with</label>
+                        <div class="flex space-x-2 mt-1">
+                            <input type="text" id="search-username" class="input-field w-full p-2 rounded-md" placeholder="Enter exact username...">
+                            <button id="search-btn" class="btn btn-primary px-4 py-2 rounded-md font-semibold">Search</button>
+                        </div>
+                    </div>
+                    <div id="search-results" class="mt-4 text-center"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Screen -->
+        <div id="chat-screen" class="hidden h-[80vh] flex flex-col">
+             <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Chat with <span id="recipient-display" class="font-mono text-emerald-400"></span></h2>
+                    <p class="text-sm text-gray-400">You are <span id="user-display" class="font-mono text-emerald-400"></span>. Your connection is private & encrypted.</p>
+                </div>
+                <div>
+                    <button id="clear-btn" class="btn btn-secondary px-4 py-2 rounded-md font-semibold mr-2">Clear</button>
+                    <button id="back-to-dashboard-btn" class="btn btn-primary bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md font-semibold">Leave</button>
+                </div>
+            </div>
+            <textarea id="chat-box" class="chat-textarea w-full flex-grow p-4 rounded-lg text-lg leading-7 resize-none" spellcheck="false"></textarea>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, setDoc, collection, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // ----------------------------------------------------------------------
+        // PASTE YOUR FIREBASE CONFIG HERE
+        // 1. Go to your Firebase project settings
+        // 2. Under "Your apps", copy the 'firebaseConfig' object
+        // 3. Paste it directly below, replacing the placeholder object
+        // ----------------------------------------------------------------------
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            // --- YOUR CONFIG HAS BEEN PASTED HERE ---
+            apiKey: "AIzaSyAO6sKjbBKdWm3MXggc-Iliywxh7CwSKok",
+            authDomain: "capsc-d160e.firebaseapp.com",
+            projectId: "capsc-d160e",
+            storageBucket: "capsc-d160e.firebasestorage.app",
+            messagingSenderId: "1069210585933",
+            appId: "1:1069210585933:web:54f05cf195caeea8320504"
+            // measurementId is optional and not used in this app
+            // ------------------------------------------
+        };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // --- App State ---
+        let db, auth, currentRoomId, currentUser = null;
+        let cryptoKey; // Re-added for E2EE
+        let unsubscribeRoom = () => {};
+        let isUpdatingFromFirestore = false;
+        
+        // --- DOM Elements ---
+        const loadingScreen = document.getElementById('loading-screen');
+        const authScreen = document.getElementById('auth-screen');
+        const signupForm = document.getElementById('signup-form');
+        const loginForm = document.getElementById('login-form');
+        const dashboardScreen = document.getElementById('dashboard-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        // ... other elements
+
+        // --- Init ---
+        async function init() {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            setupEventListeners();
+            
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    const userProfile = await getUserProfile(user.uid);
+                    if (userProfile) {
+                        currentUser = { uid: user.uid, ...userProfile };
+                        showDashboard();
+                    } else {
+                        signOut(auth);
+                    }
+                } else {
+                    currentUser = null;
+                    showAuthScreen();
+                }
+                loadingScreen.classList.add('hidden');
+            });
+        }
+        
+        // --- UI Control ---
+        function showAuthScreen() {
+            authScreen.classList.remove('hidden');
+            dashboardScreen.classList.add('hidden');
+            chatScreen.classList.add('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('dashboard-username').textContent = currentUser.username;
+            document.getElementById('dashboard-usercode').textContent = currentUser.uniqueCode;
+            document.getElementById('search-results').innerHTML = '';
+            document.getElementById('search-username').value = '';
+            
+            authScreen.classList.add('hidden');
+            dashboardScreen.classList.remove('hidden');
+            chatScreen.classList.add('hidden');
+        }
+
+        function showChatScreen(yourUsername, recipientUsername) {
+            document.getElementById('user-display').textContent = yourUsername;
+            document.getElementById('recipient-display').textContent = recipientUsername;
+            authScreen.classList.add('hidden');
+            dashboardScreen.classList.add('hidden');
+            chatScreen.classList.remove('hidden');
+            document.getElementById('chat-box').focus();
+        }
+
+        // --- Crypto Helper Functions (Re-added) ---
+        async function deriveKey(password, salt) {
+            const encoder = new TextEncoder();
+            const baseKey = await window.crypto.subtle.importKey(
+                "raw",
+                encoder.encode(password),
+                { name: "PBKDF2" },
+                false,
+                ["deriveKey"]
+            );
+            return await window.crypto.subtle.deriveKey(
+                {
+                    name: "PBKDF2",
+                    salt: encoder.encode(salt),
+                    iterations: 100000,
+                    hash: "SHA-256",
+                },
+                baseKey,
+                { name: "AES-GCM", length: 256 },
+                true,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        async function encryptText(text, key) {
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encodedText = new TextEncoder().encode(text);
+            const encryptedData = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                encodedText
+            );
+            
+            const encryptedArray = new Uint8Array(iv.length + encryptedData.byteLength);
+            encryptedArray.set(iv);
+            encryptedArray.set(new Uint8Array(encryptedData), iv.length);
+
+            return btoa(String.fromCharCode.apply(null, encryptedArray));
+        }
+
+        async function decryptText(encryptedBase64, key) {
+            try {
+                const encryptedArray = new Uint8Array(atob(encryptedBase64).split("").map(c => c.charCodeAt(0)));
+                const iv = encryptedArray.slice(0, 12);
+                const data = encryptedArray.slice(12);
+
+                const decryptedData = await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: iv },
+                    key,
+                    data
+                );
+
+                return new TextDecoder().decode(decryptedData);
+            } catch (error) {
+                console.error("Decryption failed:", error);
+                return "DECRYPTION FAILED: Invalid unique code for this user.";
+            }
+        }
+        
+        // --- Auth & User Profile Functions ---
+        async function getUserProfile(uid) {
+            const userRef = doc(db, `/artifacts/${appId}/public/data/users`, uid);
+            const docSnap = await getDocs(query(collection(db, `/artifacts/${appId}/public/data/users`), where("uid", "==", uid)));
+            if (!docSnap.empty) {
+                return docSnap.docs[0].data();
+            }
+            return null;
+        }
+
+        async function findUserByUsername(username) {
+            const usersRef = collection(db, `/artifacts/${appId}/public/data/users`);
+            const q = query(usersRef, where("username", "==", username));
+            const querySnapshot = await getDocs(q);
+            return querySnapshot;
+        }
+
+        function generateUniqueCode() {
+            const words = ['alpha', 'beta', 'gamma', 'delta', 'omega', 'zeta', 'nova', 'comet', 'orbit', 'pulse'];
+            return `${words[Math.floor(Math.random() * words.length)]}-${Math.floor(1000 + Math.random() * 9000)}`;
+        }
+
+        // --- Event Handlers ---
+        function setupEventListeners() {
+            // Auth screen toggles
+            document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); signupForm.classList.add('hidden'); loginForm.classList.remove('hidden'); });
+            document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); loginForm.classList.add('hidden'); signupForm.classList.remove('hidden'); });
+
+            // Auth buttons
+            document.getElementById('signup-btn').addEventListener('click', handleSignUp);
+            document.getElementById('login-btn').addEventListener('click', handleLogin);
+            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+
+            // Dashboard
+            document.getElementById('search-btn').addEventListener('click', handleSearch);
+            
+            // Chat
+            document.getElementById('back-to-dashboard-btn').addEventListener('click', handleLeaveChat);
+            // MODIFIED: Call deleteRoomContent instead of updateFirestoreContent
+            document.getElementById('clear-btn').addEventListener('click', () => deleteRoomContent());
+            document.getElementById('chat-box').addEventListener('input', () => { if (!isUpdatingFromFirestore) { updateFirestoreContent(document.getElementById('chat-box').value); }});
+        }
+
+        async function handleSignUp() {
+            const username = document.getElementById('signup-username').value.trim().toLowerCase();
+            const password = document.getElementById('signup-password').value.trim();
+            const errorEl = document.getElementById('auth-error');
+            errorEl.textContent = '';
+
+            if (!username || password.length < 6) {
+                errorEl.textContent = 'Username is required and password must be 6+ characters.';
+                return;
+            }
+
+            const existingUsers = await findUserByUsername(username);
+            if (!existingUsers.empty) {
+                errorEl.textContent = 'Username is already taken.';
+                return;
+            }
+            
+            try {
+                const dummyEmail = `${username}@e2ee-chat.app`;
+                const userCredential = await createUserWithEmailAndPassword(auth, dummyEmail, password);
+                const user = userCredential.user;
+
+                const userProfile = {
+                    uid: user.uid,
+                    username: username,
+                    uniqueCode: generateUniqueCode()
+                };
+                await setDoc(doc(db, `/artifacts/${appId}/public/data/users`, user.uid), userProfile);
+
+            } catch (error) {
+                errorEl.textContent = 'Error creating account: ' + error.message;
+            }
+        }
+        
+        async function handleLogin() {
+            const username = document.getElementById('login-username').value.trim().toLowerCase();
+            const password = document.getElementById('login-password').value.trim();
+            const errorEl = document.getElementById('auth-error');
+            errorEl.textContent = '';
+
+            if (!username || !password) {
+                errorEl.textContent = 'Please enter username and password.';
+                return;
+            }
+
+            try {
+                const dummyEmail = `${username}@e2ee-chat.app`;
+                await signInWithEmailAndPassword(auth, dummyEmail, password);
+            } catch (error) {
+                errorEl.textContent = 'Invalid username or password.';
+            }
+        }
+
+        async function handleSearch() {
+            const searchUsername = document.getElementById('search-username').value.trim().toLowerCase();
+            const resultsEl = document.getElementById('search-results');
+            resultsEl.innerHTML = '<div class="spinner w-6 h-6 border-2 border-gray-600 rounded-full mx-auto"></div>';
+
+Input:
+            if (!searchUsername) {
+                resultsEl.innerHTML = '<p class="text-gray-400">Please enter a username to search.</p>';
+                return;
+            }
+            if (searchUsername === currentUser.username) {
+                resultsEl.innerHTML = '<p class="text-amber-400">You can\'t chat with yourself!</p>';
+                return;
+            }
+
+            const querySnapshot = await findUserByUsername(searchUsername);
+            if (querySnapshot.empty) {
+                resultsEl.innerHTML = '<p class="text-red-400">User not found.</p>';
+            } else {
+                const recipient = querySnapshot.docs[0].data();
+                resultsEl.innerHTML = `
+                    <div class="bg-gray-700 p-4 rounded-md flex justify-between items-center">
+                        <span class="font-semibold text-white">${recipient.username}</span>
+                        <button id="initiate-chat-btn" class="btn btn-primary px-3 py-1 rounded-md text-sm">Chat</button>
+                    </div>
+                `;
+                document.getElementById('initiate-chat-btn').addEventListener('click', () => handleInitiateChat(recipient));
+            }
+        }
+        
+        async function handleInitiateChat(recipient) {
+            // MODIFIED: Ask for their unique code to use as the secret
+            const theirCode = prompt(`To start a secure chat with ${recipient.username}, please enter their unique code:`);
+            const resultsEl = document.getElementById('search-results');
+            
+            if (!theirCode || theirCode.trim() === '') {
+                resultsEl.innerHTML = `<p class="text-red-400">Chat cancelled. You must enter their unique code.</p>`;
+                return;
+            }
+
+            const secret = theirCode.trim();
+            const codes = [currentUser.username, recipient.username].sort();
+            currentRoomId = codes.join('-');
+
+            try {
+                // ADDED: Derive the encryption key
+                cryptoKey = await deriveKey(secret, currentRoomId);
+                
+                listenToRoom();
+                showChatScreen(currentUser.username, recipient.username);
+            } catch (error) {
+                console.error("Error deriving key:", error);
+                resultsEl.innerHTML = `<p class="text-red-400">Could not start chat. Please check the unique code and try again.</p>`;
+            }
+        }
+
+        // NEW function: Deletes the chat document from Firestore
+        async function deleteRoomContent() {
+            if (!currentRoomId) return;
+            const roomRef = doc(db, `/artifacts/${appId}/public/data/e2ee-chat`, currentRoomId);
+            try {
+                // This permanently deletes the document
+                await deleteDoc(roomRef);
+            } catch (error) {
+                console.error("Error deleting document:", error);
+            }
+        }
+
+        function handleLeaveChat() {
+            if (unsubscribeRoom) unsubscribeRoom();
+            
+            // ADDED: Delete the room content when leaving
+            deleteRoomContent(); 
+
+            currentRoomId = null;
+            cryptoKey = null; // Added
+            document.getElementById('chat-box').value = "";
+            showDashboard();
+        }
+
+        // --- Firestore Real-time (Now E2EE) ---
+        async function updateFirestoreContent(content) {
+            if (!currentRoomId || !cryptoKey) return; // Added cryptoKey check
+            // Storing content WITH encryption
+            const encryptedContent = await encryptText(content, cryptoKey);
+            const roomRef = doc(db, `/artifacts/${appId}/public/data/e2ee-chat`, currentRoomId);
+            await setDoc(roomRef, { content: encryptedContent }, { merge: true });
+        }
+        
+        function listenToRoom() {
+            const roomRef = doc(db, `/artifacts/${appId}/public/data/e2ee-chat`, currentRoomId);
+            unsubscribeRoom = onSnapshot(roomRef, async (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if(data.content !== undefined) { // Check for undefined, as empty string is valid
+                        // Decrypt the content
+                        const decryptedContent = await decryptText(data.content, cryptoKey);
+                        isUpdatingFromFirestore = true;
+                        if(document.getElementById('chat-box').value !== decryptedContent) {
+                             document.getElementById('chat-box').value = decryptedContent;
+                        }
+                        isUpdatingFromFirestore = false;
+                    }
+                } else {
+                    // MODIFIED: The document was deleted (by "Clear" or "Leave"). 
+                    // Just clear the local text area. Do NOT re-create the document here.
+                    isUpdatingFromFirestore = true;
+                    if(document.getElementById('chat-box').value !== "") {
+                         document.getElementById('chat-box').value = "";
+                    }
+                    isUpdatingFromFirestore = false;
+                }
+            });
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
+
+
+
+
+
