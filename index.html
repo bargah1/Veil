@@ -228,6 +228,25 @@
 
     </div>
 
+    <!-- Custom Code Prompt Modal (NEW) -->
+    <div id="code-prompt-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="card-bg p-8 rounded-lg shadow-2xl w-full max-w-sm">
+            <h2 class="text-xl font-semibold text-white mb-2">Enter Unique Code</h2>
+            <p class="text-gray-400 mb-4">To start a secure chat with <strong id="prompt-recipient-name" class="text-accent"></strong>, please enter their code.</p>
+            <div class="space-y-4">
+                <div>
+                    <label for="code-prompt-input" class="block text-sm font-medium text-gray-300">Unique Code</label>
+                    <input type="text" id="code-prompt-input" class="input-field w-full p-2 mt-1 rounded-md" placeholder="e.g., alpha-1234">
+                </div>
+                <div id="code-prompt-error" class="text-red-400 text-sm text-center"></div>
+                <div class="flex justify-end space-x-3">
+                    <button id="code-prompt-cancel" class="btn btn-secondary px-4 py-2 rounded-md font-semibold">Cancel</button>
+                    <button id="code-prompt-confirm" class="btn btn-primary px-4 py-2 rounded-md font-semibold">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, onSnapshot, setDoc, collection, query, where, getDocs, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -269,7 +288,15 @@
         const chatScreen = document.getElementById('chat-screen');
         const onlineStatusDot = document.getElementById('online-status-dot');
         const onlineStatusText = document.getElementById('online-status-text');
-        // ... other elements
+        
+        // NEW Modal Elements
+        const codePromptModal = document.getElementById('code-prompt-modal');
+        const codePromptRecipientName = document.getElementById('prompt-recipient-name');
+        const codePromptInput = document.getElementById('code-prompt-input');
+        const codePromptError = document.getElementById('code-prompt-error');
+        const codePromptCancel = document.getElementById('code-prompt-cancel');
+        const codePromptConfirm = document.getElementById('code-prompt-confirm');
+
 
         // --- Init ---
         async function init() {
@@ -332,6 +359,51 @@
             dashboardScreen.classList.add('hidden');
             chatScreen.classList.remove('hidden');
             document.getElementById('chat-box').focus();
+        }
+
+        // NEW function: Replaces the native prompt()
+        function showCodePrompt(recipient) {
+            return new Promise((resolve, reject) => {
+                codePromptRecipientName.textContent = recipient.username;
+                codePromptInput.value = '';
+                codePromptError.textContent = '';
+                codePromptModal.classList.remove('hidden');
+                codePromptInput.focus();
+
+                // --- Create one-time event handlers ---
+                const handleConfirm = () => {
+                    const code = codePromptInput.value.trim();
+                    if (!code) {
+                        codePromptError.textContent = 'Please enter a code.';
+                        return; // Don't close modal
+                    }
+                    cleanup();
+                    resolve(code);
+                };
+
+                const handleCancel = () => {
+                    cleanup();
+                    reject(new Error('User cancelled prompt.'));
+                };
+
+                const handleKeyup = (e) => {
+                    if (e.key === 'Enter') handleConfirm();
+                    if (e.key === 'Escape') handleCancel();
+                };
+
+                // --- Add event listeners ---
+                codePromptConfirm.addEventListener('click', handleConfirm);
+                codePromptCancel.addEventListener('click', handleCancel);
+                codePromptInput.addEventListener('keyup', handleKeyup);
+                
+                // --- Cleanup function to remove listeners and hide modal ---
+                function cleanup() {
+                    codePromptConfirm.removeEventListener('click', handleConfirm);
+                    codePromptCancel.removeEventListener('click', handleCancel);
+                    codePromptInput.removeEventListener('keyup', handleKeyup);
+                    codePromptModal.classList.add('hidden');
+                }
+            });
         }
 
         // --- Crypto Helper Functions (Re-added) ---
@@ -533,12 +605,15 @@
 
             // If no secret was provided (not a recent chat), prompt the user
             if (!secret) {
-                const theirCode = prompt(`To start a secure chat with ${recipient.username}, please enter their unique code:`);
-                if (!theirCode || theirCode.trim() === '') {
-                    resultsEl.innerHTML = `<p class="text-red-400">Chat cancelled. You must enter their unique code.</p>`;
+                // --- MODIFIED: Replaced prompt() with custom modal ---
+                try {
+                    secret = await showCodePrompt(recipient);
+                } catch (error) {
+                    // User clicked cancel
+                    resultsEl.innerHTML = `<p class="text-red-400">Chat cancelled.</p>`;
                     return;
                 }
-                secret = theirCode.trim();
+                // --- End of modification ---
             }
 
             // Create a deterministic, sorted room ID
@@ -563,8 +638,13 @@
                 showChatScreen(currentUser.username, recipient.username);
 
             } catch (error) {
-                console.error("Error deriving key:", error);
-                resultsEl.innerHTML = `<p class="text-red-400">Could not start chat. Please check the unique code and try again.</p>`;
+                console.error("Error starting chat:", error);
+                // MODIFIED: Better error handling
+                if (error.message === 'User cancelled prompt.') {
+                    resultsEl.innerHTML = `<p class="text-red-400">Chat cancelled.</p>`;
+                } else {
+                    resultsEl.innerHTML = `<p class="text-red-400">Could not start chat. A crypto error occurred.</p>`;
+                }
             }
         }
 
@@ -732,6 +812,7 @@
     </script>
 </body>
 </html>
+
 
 
 
