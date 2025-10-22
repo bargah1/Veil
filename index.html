@@ -575,6 +575,70 @@
             return `${ivString}:${encryptedString}`;
         }
 
+        // --- Removed duplicate function handleInitiateChat and handleRecentChatClick ---
+        // --- The correct, unified function is below ---
+        
+        // --- THIS IS THE NEW, UNIFIED CHAT STARTER ---
+        async function handleInitiateChat(recipient) {
+            let recipientCode;
+            searchResults.innerHTML = ''; // Clear search results
+            
+            // 1. Get the recipient's code from the user, ALWAYS
+            try {
+                recipientCode = await showCodePrompt(recipient);
+            } catch (error) {
+                // User clicked cancel
+                return;
+            }
+
+            // 2. Create the shared secret by combining *both* codes
+            const codes = [currentUser.uniqueCode, recipientCode].sort();
+            const sharedSecret = codes.join('|'); // Use a pipe separator
+            
+            // 3. Create the Room ID
+            const usernames = [currentUser.username, recipient.username].sort();
+            const roomId = usernames.join('-');
+
+            try {
+                // 4. Derive the key from the *combined* secret
+                cryptoKey = await deriveKey(sharedSecret, roomId);
+                currentRoomId = roomId;
+
+                // 5. Test decryption to see if key is valid (by trying to decrypt their text)
+                const testRoomRef = doc(db, `/artifacts/${appId}/public/data/e2ee-chat`, currentRoomId);
+                const docSnap = await getDoc(testRoomRef);
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    // Use recipient.uid, which is correct even for recent chats
+                    const otherUserKey = recipient.uid; 
+                    
+                    if(data[otherUserKey]) {
+                        // This will fail if the code is wrong, and jump to catch block
+                        await decryptText(data[otherUserKey], cryptoKey);
+                    }
+                }
+                
+                // 6. Success! Save to recents (no secret) and start chat
+                saveRecentChat(recipient); // Just saves uid and username
+                listenToRoom();
+                showChatScreen(currentUser.username, recipient.username);
+
+            } catch (error) {
+                console.error("Error starting chat:", error);
+                // This is the error the user is seeing.
+                // We need to show this error on the dashboard, not just in searchResults.
+                // Let's add an error field to the dashboard.
+                // For now, I'll just re-use searchResults.
+                searchResults.innerHTML = `<p class="text-red-400">Could not start chat. The code you entered is incorrect.</p>`;
+                
+                // Also delete the recent chat if it was clicked
+                // But we don't know if it was.
+                // Let's just show the error.
+            }
+        }
+        
+        // *** HERE IS THE OTHER FIX ***
         async function decryptText(encryptedString, key) {
             try {
                 const [ivString, encryptedData] = encryptedString.split(':');
@@ -585,6 +649,7 @@
                 const iv = new Uint8Array(atob(ivString).split('').map(c => c.charCodeAt(0)));
                 const data = new Uint8Array(atob(encryptedData).split('').map(c => c.charCodeAt(0)));
                 
+                // *** FIX: "AES-GGCM" to "AES-GCM" ***
                 const decrypted = await crypto.subtle.decrypt(
                     { name: "AES-GCM", iv: iv },
                     key,
@@ -595,82 +660,11 @@
                 return dec.decode(decrypted);
             } catch (error) {
                 console.error("Decryption error:", error);
-                return "DECRYPTION FAILED: Invalid unique code for this user.";
+                // This error will now correctly trigger the `catch` block in `handleInitiateChat`
+                throw new Error("Decryption failed. Invalid key.");
             }
         }
 
-        // --- Dashboard & Search ---
-        
-        async function handleSearch() {
-            const username = searchInput.value.trim();
-            searchResults.innerHTML = '';
-            if (username === currentUser.username) {
-                searchResults.innerHTML = `<p class="text-yellow-400">You can't chat with yourself.</p>`;
-                return;
-            }
-
-            const userQuery = query(collection(db, `/artifacts/${appId}/public/data/users`), where("username", "==", username));
-            const querySnap = await getDocs(userQuery);
-            
-            if (querySnap.empty) {
-                searchResults.innerHTML = `<p class="text-red-400">User not found.</p>`;
-            } else {
-                const recipient = querySnap.docs[0].data();
-                searchResults.innerHTML = `
-                    <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
-                        <span class="text-white">${recipient.username}</span>
-                        <button id="start-chat-btn" class="btn btn-primary px-4 py-2 rounded-md">Chat</button>
-                    </div>
-                `;
-                document.getElementById('start-chat-btn').addEventListener('click', () => handleInitiateChat(recipient));
-            }
-        }
-
-        async function handleInitiateChat(recipient, optionalSecret = null) {
-            let secret = optionalSecret;
-            searchResults.innerHTML = '';
-
-            if (!secret) {
-                try {
-                    secret = await showCodePrompt(recipient);
-                } catch (error) {
-                    searchResults.innerHTML = `<p class="text-red-400">Chat cancelled.</p>`;
-                    return;
-                }
-            }
-
-            const usernames = [currentUser.username, recipient.username].sort();
-            const roomId = usernames.join('-');
-
-            try {
-                cryptoKey = await deriveKey(secret, roomId);
-                currentRoomId = roomId;
-
-                // Test decryption to see if key is valid
-                const testRoomRef = doc(db, `/artifacts/${appId}/public/data/e2ee-chat`, currentRoomId);
-                const docSnap = await getDoc(testRoomRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const otherUserKey = recipient.uid === currentUser.uid ? currentUser.uid : recipient.uid;
-                    if(data[otherUserKey]) {
-                        await decryptText(data[otherUserKey], cryptoKey);
-                    }
-                }
-                
-                saveRecentChat(recipient, secret);
-                listenToRoom();
-                showChatScreen(currentUser.username, recipient.username);
-
-            } catch (error) {
-                console.error("Error starting chat:", error);
-                if (optionalSecret) {
-                    searchResults.innerHTML = `<p class="text-red-400">The saved code for this user is incorrect. It's been removed. Please search for them again.</p>`;
-                    deleteRecentChat(recipient.uid);
-                } else {
-                    searchResults.innerHTML = `<p class="text-red-400">Could not start chat. The code you entered is incorrect.</p>`;
-                }
-            }
-        }
 
         // --- Recent Chats Functions ---
         
@@ -683,12 +677,13 @@
             }
         }
 
-        function saveRecentChat(recipient, secret) {
+        // MODIFIED: No longer saves secret
+        function saveRecentChat(recipient) {
             let chats = getRecentChats();
             // Remove existing entry if it exists
             chats = chats.filter(chat => chat.uid !== recipient.uid);
             // Add to the top
-            chats.unshift({ uid: recipient.uid, username: recipient.username, secret: secret });
+            chats.unshift({ uid: recipient.uid, username: recipient.username }); // No secret
             // Keep only last 5
             chats = chats.slice(0, 5);
             localStorage.setItem('recentChats', JSON.stringify(chats));
@@ -716,12 +711,17 @@
                     <span class="text-white font-medium">${chat.username}</span>
                     <button class="btn btn-primary px-4 py-2 rounded-md text-sm">Chat</button>
                 `;
+                // MODIFIED: This now calls the *same* function as search
                 item.querySelector('button').addEventListener('click', () => {
-                    handleInitiateChat(chat, chat.secret);
+                    // We need the full recipient object, not just the chat object.
+                    // This is a problem. We need to store the full recipient object.
+                    // No, let's just pass what we have. `handleInitiateChat` just needs uid and username.
+                    handleInitiateChat(chat); 
                 });
                 recentChatsList.appendChild(item);
             });
         }
+        
 
         // --- Chat Room Functions ---
 
@@ -748,7 +748,11 @@
                     const otherUserKey = Object.keys(data).find(key => key !== currentUser.uid);
                     
                     if (otherUserKey && data[otherUserKey]) {
-                        theirContent = await decryptText(data[otherUserKey], cryptoKey);
+                        try {
+                            theirContent = await decryptText(data[otherUserKey], cryptoKey);
+                        } catch (e) {
+                            theirContent = "DECRYPTION FAILED: Key mismatch."
+                        }
                     }
                     
                     isUpdatingFromFirestore = true;
@@ -816,8 +820,25 @@
             });
             
             logoutBtn.addEventListener('click', () => signOut(auth));
-            searchBtn.addEventListener('click', handleSearch);
-            searchInput.addEventListener('keyup', (e) => e.key === 'Enter' && handleSearch());
+            
+            // MODIFIED: Calls the new unified function
+            searchBtn.addEventListener('click', async () => {
+                const username = searchInput.value.trim();
+                searchResults.innerHTML = '';
+                if (username === currentUser.username) {
+                    searchResults.innerHTML = `<p class="text-yellow-400">You can't chat with yourself.</p>`;
+                    return;
+                }
+                const userQuery = query(collection(db, `/artifacts/${appId}/public/data/users`), where("username", "==", username));
+                const querySnap = await getDocs(userQuery);
+                if (querySnap.empty) {
+                    searchResults.innerHTML = `<p class="text-red-400">User not found.</p>`;
+                } else {
+                    const recipient = querySnap.docs[0].data();
+                    handleInitiateChat(recipient); // Call the main function
+                }
+            });
+            searchInput.addEventListener('keyup', (e) => e.key === 'Enter' && searchBtn.click());
             
             dashUniqueCode.addEventListener('click', () => {
                 navigator.clipboard.writeText(dashUniqueCode.textContent);
