@@ -97,6 +97,37 @@
         .btn-danger:hover {
             background-color: #b91c1c; /* red-700 */
         }
+        
+        /* Presence Indicator Styles */
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            transition: background-color 0.3s ease;
+        }
+        .status-online {
+            background-color: #10b981; /* emerald-500 */
+        }
+        .status-offline {
+            background-color: #6b7280; /* gray-500 */
+        }
+        
+        /* Recent Chat Styles */
+        .recent-chat-item {
+            background-color: #374151; /* gray-700 */
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .recent-chat-item:hover {
+            background-color: #4b5563; /* gray-600 */
+        }
 
     </style>
 </head>
@@ -166,6 +197,14 @@
                     </div>
                     <div id="search-results" class="mt-4 text-center"></div>
                 </div>
+                
+                <!-- Recent Chats -->
+                <div id="recent-chats-container" class="mt-8">
+                    <h3 class="text-lg font-semibold text-white mb-3">Recent Chats</h3>
+                    <div id="recent-chats-list" class="space-y-2">
+                        <!-- Recent chats will be injected here by JS -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -174,7 +213,10 @@
              <div class="flex justify-between items-center mb-4">
                 <div>
                     <h2 class="text-xl font-bold text-white">Chat with <span id="recipient-display"></span></h2>
-                    <p class="text-sm text-gray-400">You are <span id="user-display"></span>. Your connection is private & encrypted.</p>
+                    <div id="online-status-container" class="flex items-center">
+                        <span id="online-status-dot" class="status-dot status-offline"></span>
+                        <span id="online-status-text" class="text-sm text-gray-400">Offline</span>
+                    </div>
                 </div>
                 <div>
                     <button id="clear-btn" class="btn btn-secondary px-4 py-2 rounded-md font-semibold mr-2">Clear</button>
@@ -214,6 +256,8 @@
         let db, auth, currentRoomId, currentUser = null;
         let cryptoKey; // Re-added for E2EE
         let unsubscribeRoom = () => {};
+        let unsubscribePresence = () => {}; // For presence listener
+        let currentRecipient = null; // Store recipient data
         let isUpdatingFromFirestore = false;
         
         // --- DOM Elements ---
@@ -223,6 +267,8 @@
         const loginForm = document.getElementById('login-form');
         const dashboardScreen = document.getElementById('dashboard-screen');
         const chatScreen = document.getElementById('chat-screen');
+        const onlineStatusDot = document.getElementById('online-status-dot');
+        const onlineStatusText = document.getElementById('online-status-text');
         // ... other elements
 
         // --- Init ---
@@ -250,6 +296,13 @@
                 }
                 loadingScreen.classList.add('hidden');
             });
+
+            // Add listener to remove presence on tab close
+            window.addEventListener('beforeunload', () => {
+                if (currentUser && currentRoomId) {
+                    removePresence(currentUser.uid);
+                }
+            });
         }
         
         // --- UI Control ---
@@ -264,6 +317,8 @@
             document.getElementById('dashboard-usercode').textContent = currentUser.uniqueCode;
             document.getElementById('search-results').innerHTML = '';
             document.getElementById('search-username').value = '';
+            
+            displayRecentChats(); // <-- ADDED: Load recent chats
             
             authScreen.classList.add('hidden');
             dashboardScreen.classList.remove('hidden');
@@ -471,32 +526,140 @@
             }
         }
         
-        async function handleInitiateChat(recipient) {
-            // MODIFIED: Ask for their unique code to use as the secret
-            const theirCode = prompt(`To start a secure chat with ${recipient.username}, please enter their unique code:`);
+        // MODIFIED: To accept an optional pre-filled secret
+        async function handleInitiateChat(recipient, optionalSecret = null) {
             const resultsEl = document.getElementById('search-results');
-            
-            if (!theirCode || theirCode.trim() === '') {
-                resultsEl.innerHTML = `<p class="text-red-400">Chat cancelled. You must enter their unique code.</p>`;
-                return;
+            let secret = optionalSecret;
+
+            // If no secret was provided (not a recent chat), prompt the user
+            if (!secret) {
+                const theirCode = prompt(`To start a secure chat with ${recipient.username}, please enter their unique code:`);
+                if (!theirCode || theirCode.trim() === '') {
+                    resultsEl.innerHTML = `<p class="text-red-400">Chat cancelled. You must enter their unique code.</p>`;
+                    return;
+                }
+                secret = theirCode.trim();
             }
 
-            const secret = theirCode.trim();
             // Create a deterministic, sorted room ID
             const codes = [currentUser.username, recipient.username].sort();
             currentRoomId = codes.join('-');
+            currentRecipient = recipient; // <-- ADDED: Store recipient
 
             try {
                 // ADDED: Derive the encryption key
                 cryptoKey = await deriveKey(secret, currentRoomId);
                 
+                // --- ADDED: PRESENCE & RECENTS ---
+                // 1. Save this chat to recents
+                saveRecentChat(recipient, secret);
+                // 2. Set our own presence
+                setPresence(currentUser.uid);
+                // 3. Listen for their presence
+                listenForPresence(recipient.uid);
+                // ---------------------------------
+                
                 listenToRoom();
                 showChatScreen(currentUser.username, recipient.username);
+
             } catch (error) {
                 console.error("Error deriving key:", error);
                 resultsEl.innerHTML = `<p class="text-red-400">Could not start chat. Please check the unique code and try again.</p>`;
             }
         }
+
+        // --- Recent Chats Functions (NEW) ---
+        function getRecentChats() {
+            const chats = localStorage.getItem('recentChats');
+            return chats ? JSON.parse(chats) : [];
+        }
+
+        function saveRecentChat(recipient, secret) {
+            let chats = getRecentChats();
+            // Remove old entry for this user, if any
+            chats = chats.filter(chat => chat.uid !== recipient.uid);
+            // Add new entry to the top
+            chats.unshift({
+                uid: recipient.uid,
+                username: recipient.username,
+                secret: secret // Store the secret for re-use
+            });
+            // Keep only the last 5 recents
+            chats = chats.slice(0, 5);
+            localStorage.setItem('recentChats', JSON.stringify(chats));
+        }
+
+        function displayRecentChats() {
+            const chats = getRecentChats();
+            const listEl = document.getElementById('recent-chats-list');
+            if (chats.length === 0) {
+                listEl.innerHTML = '<p class="text-sm text-gray-500 text-center">No recent chats.</p>';
+                return;
+            }
+            listEl.innerHTML = chats.map(chat => `
+                <div class="recent-chat-item" data-uid="${chat.uid}">
+                    <span class="font-semibold text-white">${chat.username}</span>
+                    <button class="btn btn-primary px-3 py-1 rounded-md text-sm" data-secret="${chat.secret}">Chat</button>
+                </div>
+            `).join('');
+
+            // Add event listeners to the new buttons
+            listEl.querySelectorAll('.recent-chat-item button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent clicks from bubbling
+                    const secret = e.target.dataset.secret;
+                    const username = e.target.previousElementSibling.textContent;
+                    const uid = e.target.parentElement.dataset.uid;
+                    // Re-create the recipient object and call handleInitiateChat
+                    handleInitiateChat({ uid, username }, secret);
+                });
+            });
+        }
+
+        // --- Presence Functions (NEW) ---
+        function getPresenceCollectionPath() {
+            if (!currentRoomId) return null;
+            return `/artifacts/${appId}/public/data/presence/${currentRoomId}/users`;
+        }
+
+        async function setPresence(userId) {
+            const path = getPresenceCollectionPath();
+            if (!path) return;
+            try {
+                await setDoc(doc(db, path, userId), { online: true, timestamp: new Date() });
+            } catch (error) {
+                console.error("Error setting presence:", error);
+            }
+        }
+
+        async function removePresence(userId) {
+            const path = getPresenceCollectionPath();
+            if (!path) return;
+            try {
+                await deleteDoc(doc(db, path, userId));
+            } catch (error) {
+                console.error("Error removing presence:", error);
+            }
+        }
+
+        function listenForPresence(recipientUid) {
+            const path = getPresenceCollectionPath();
+            if (!path) return;
+            
+            const recipientDocRef = doc(db, path, recipientUid);
+            unsubscribePresence = onSnapshot(recipientDocRef, (docSnap) => {
+                if (docSnap.exists() && docSnap.data().online) {
+                    onlineStatusDot.classList.remove('status-offline');
+                    onlineStatusDot.classList.add('status-online');
+                    onlineStatusText.textContent = "Online";
+                } else {
+                    onlineStatusDot.classList.remove('status-online');
+                    onlineStatusDot.classList.add('status-offline');
+                    onlineStatusText.textContent = "Offline";
+                }
+            });
+        }
+
 
         // NEW function: Deletes the chat document from Firestore
         async function deleteRoomContent() {
@@ -513,12 +676,18 @@
 // This function is called by 'Clear' and 'Leave'
         function handleLeaveChat() {
             if (unsubscribeRoom) unsubscribeRoom();
+            if (unsubscribePresence) unsubscribePresence(); // <-- ADDED: Stop presence listener
             
             // ADDED: Delete the room content when leaving
             deleteRoomContent(); 
+            // ADDED: Remove our own presence
+            if (currentUser) {
+                removePresence(currentUser.uid);
+            }
 
             currentRoomId = null;
             cryptoKey = null; // Added
+            currentRecipient = null; // Added
             document.getElementById('chat-box').value = "";
             showDashboard();
         }
@@ -563,6 +732,7 @@
     </script>
 </body>
 </html>
+
 
 
 
