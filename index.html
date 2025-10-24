@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Updated Title -->
     <title>Veil</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap');
         
-        /* Updated Color Theme */
+        /* Color Theme */
         :root {
             --bg-primary: #0C0C0C; /* Jet black */
             --bg-secondary: #181818; /* Matte dark gray */
@@ -135,7 +134,6 @@
         <!-- Login/Signup Screen -->
         <div id="auth-screen" class="hidden w-full max-w-md mx-auto">
             <div class="card-bg p-8 rounded-lg shadow-2xl">
-                <!-- Updated Heading -->
                 <h2 class="text-3xl font-bold text-center text-white mb-8">Veil</h2>
                 
                 <!-- Sign Up Form -->
@@ -182,11 +180,8 @@
                     <h2 class="text-2xl font-bold text-white">Welcome, <span id="dash-username" class="text-accent"></span></h2>
                     <button id="logout-btn" class="btn btn-secondary px-4 py-2 rounded-md font-semibold">Logout</button>
                 </div>
-                
-                <div class="bg-gray-800 p-4 rounded-lg mb-6">
-                    <p class="text-sm text-text-secondary">Your Unique Code (share this with friends):</p>
-                    <p id="dash-unique-code" class="text-lg font-mono text-yellow-400 cursor-pointer" title="Click to copy"></p>
-                </div>
+
+                <!-- Removed Unique Code Section -->
 
                 <div class="space-y-4">
                     <label for="search-username" class="block text-sm font-medium text-text-secondary">Search for a user to chat with</label>
@@ -207,7 +202,7 @@
             </div>
         </div>
 
-        <!-- Chat Screen (NEW Two-Pad Layout) -->
+        <!-- Chat Screen (Two-Pad Layout) -->
         <div id="chat-screen" class="hidden h-[80vh] flex flex-col">
              <div class="flex justify-between items-center mb-4">
                 <div>
@@ -242,24 +237,7 @@
 
     </div>
 
-    <!-- Custom Code Prompt Modal -->
-    <div id="code-prompt-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
-        <div class="card-bg p-8 rounded-lg shadow-2xl w-full max-w-sm">
-            <h2 class="text-xl font-semibold text-white mb-2">Enter Unique Code</h2>
-            <p class="text-text-secondary mb-4">To start a secure chat with <strong id="prompt-recipient-name" class="text-accent"></strong>, please enter their code.</p>
-            <div class="space-y-4">
-                <div>
-                    <label for="code-prompt-input" class="block text-sm font-medium text-gray-300">Unique Code</label>
-                    <input type="text" id="code-prompt-input" class="input-field w-full p-2 mt-1 rounded-md" placeholder="e.g., alpha-1234">
-                </div>
-                <div id="code-prompt-error" class="text-red-400 text-sm text-center h-4"></div>
-                <div class="flex justify-end space-x-3 mt-2">
-                    <button id="code-prompt-cancel" class="btn btn-secondary px-4 py-2 rounded-md font-semibold">Cancel</button>
-                    <button id="code-prompt-confirm" class="btn btn-primary px-4 py-2 rounded-md font-semibold">Confirm</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Removed Code Prompt Modal -->
 
     <script type="module">
         // --- Firebase Imports ---
@@ -300,7 +278,7 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         // --- App State ---
-        let db, auth, currentUser, currentRoomId, cryptoKey;
+        let db, auth, currentUser, currentRoomId; // Removed cryptoKey
         let unsubscribeRoom = () => {};
         let unsubscribePresence = () => {};
         let isUpdatingFromFirestore = false;
@@ -321,7 +299,7 @@
         
         // Dashboard
         const dashUsername = document.getElementById('dash-username');
-        const dashUniqueCode = document.getElementById('dash-unique-code');
+        // Removed dash-unique-code
         const logoutBtn = document.getElementById('logout-btn');
         const searchBtn = document.getElementById('search-btn');
         const searchInput = document.getElementById('search-username');
@@ -338,13 +316,7 @@
         const onlineStatusDot = document.getElementById('online-status-dot');
         const onlineStatusText = document.getElementById('online-status-text');
         
-        // Modal
-        const codePromptModal = document.getElementById('code-prompt-modal');
-        const codePromptRecipientName = document.getElementById('prompt-recipient-name');
-        const codePromptInput = document.getElementById('code-prompt-input');
-        const codePromptError = document.getElementById('code-prompt-error');
-        const codePromptCancel = document.getElementById('code-prompt-cancel');
-        const codePromptConfirm = document.getElementById('code-prompt-confirm');
+        // Removed Modal Elements
 
 
         // --- Init ---
@@ -377,7 +349,7 @@
             if (userSnap.exists()) {
                 currentUser = { uid, ...userSnap.data() };
                 dashUsername.textContent = currentUser.username;
-                dashUniqueCode.textContent = currentUser.uniqueCode;
+                // Removed unique code display
             } else {
                 console.error("No user data found for logged-in user!");
                 await signOut(auth);
@@ -408,17 +380,17 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, `${username}@e2ee-chat.app`, password);
                 const user = userCredential.user;
 
-                // 3. Create user profile in Firestore
-                const uniqueCode = `${Math.random().toString(36).substr(2, 5)}-${Math.floor(1000 + Math.random() * 9000)}`;
+                // 3. Create user profile in Firestore (no unique code)
                 const userRef = doc(db, `/artifacts/${appId}/public/data/users`, user.uid);
                 await setDoc(userRef, {
                     username: username,
                     uid: user.uid,
-                    uniqueCode: uniqueCode
+                    // removed uniqueCode
                 });
 
                 // App will auto-login via onAuthStateChanged
-            } catch (error) {
+            } catch (error)
+{
                 console.error("Signup error:", error);
                 signupError.textContent = error.message.replace('Firebase: ', '');
             }
@@ -493,178 +465,61 @@
             myChatPad.focus();
         }
 
-        // --- Custom Modal Prompt ---
-        function showCodePrompt(recipient) {
-            return new Promise((resolve, reject) => {
-                codePromptRecipientName.textContent = recipient.username;
-                codePromptInput.value = '';
-                codePromptError.textContent = '';
-                codePromptModal.classList.remove('hidden');
-                codePromptInput.focus();
-
-                const handleConfirm = () => {
-                    const code = codePromptInput.value.trim();
-                    if (!code) {
-                        codePromptError.textContent = 'Please enter a code.';
-                        return;
-                    }
-                    cleanup();
-                    resolve(code);
-                };
-
-                const handleCancel = () => {
-                    cleanup();
-                    reject(new Error('User cancelled prompt.'));
-                };
-
-                const handleKeyup = (e) => {
-                    if (e.key === 'Enter') handleConfirm();
-                    if (e.key === 'Escape') handleCancel();
-                };
-
-                codePromptConfirm.addEventListener('click', handleConfirm);
-                codePromptCancel.addEventListener('click', handleCancel);
-                codePromptInput.addEventListener('keyup', handleKeyup);
-                
-                function cleanup() {
-                    codePromptConfirm.removeEventListener('click', handleConfirm);
-                    codePromptCancel.removeEventListener('click', handleCancel);
-                    codePromptInput.removeEventListener('keyup', handleKeyup);
-                    codePromptModal.classList.add('hidden');
-                }
-            });
-        }
-
-        // --- Crypto Helper Functions ---
+        // Removed Custom Modal Prompt
         
-        async function deriveKey(password, salt) {
-            const enc = new TextEncoder();
-            const keyMaterial = await crypto.subtle.importKey(
-                "raw",
-                enc.encode(password),
-                "PBKDF2",
-                false,
-                ["deriveKey"]
-            );
-            return crypto.subtle.deriveKey(
-                {
-                    "name": "PBKDF2",
-                    salt: enc.encode(salt),
-                    iterations: 100000,
-                    hash: "SHA-256"
-                },
-                keyMaterial,
-                { "name": "AES-GCM", "length": 256 },
-                true,
-                ["encrypt", "decrypt"]
-            );
-        }
+        // Removed Crypto Helper Functions
 
-        async function encryptText(text, key) {
-            const enc = new TextEncoder();
-            const iv = crypto.getRandomValues(new Uint8Array(12));
-            const encrypted = await crypto.subtle.encrypt(
-                { name: "AES-GCM", iv: iv },
-                key,
-                enc.encode(text)
-            );
-            
-            const ivString = btoa(String.fromCharCode.apply(null, iv));
-            const encryptedString = btoa(String.fromCharCode.apply(null, new Uint8Array(encrypted)));
-            
-            return `${ivString}:${encryptedString}`;
-        }
-
-        // --- Removed duplicate function handleInitiateChat and handleRecentChatClick ---
-        // --- The correct, unified function is below ---
+        // --- Dashboard & Search ---
         
-        // --- THIS IS THE NEW, UNIFIED CHAT STARTER ---
-        async function handleInitiateChat(recipient) {
-            let recipientCode;
-            searchResults.innerHTML = ''; // Clear search results
-            
-            // 1. Get the recipient's code from the user, ALWAYS
-            try {
-                recipientCode = await showCodePrompt(recipient);
-            } catch (error) {
-                // User clicked cancel
+        async function handleSearch() {
+            const username = searchInput.value.trim();
+            searchResults.innerHTML = '';
+            if (username === currentUser.username) {
+                searchResults.innerHTML = `<p class="text-yellow-400">You can't chat with yourself.</p>`;
                 return;
             }
 
-            // 2. Create the shared secret by combining *both* codes
-            const codes = [currentUser.uniqueCode, recipientCode].sort();
-            const sharedSecret = codes.join('|'); // Use a pipe separator
+            const userQuery = query(collection(db, `/artifacts/${appId}/public/data/users`), where("username", "==", username));
+            const querySnap = await getDocs(userQuery);
             
-            // 3. Create the Room ID
+            if (querySnap.empty) {
+                searchResults.innerHTML = `<p class="text-red-400">User not found.</p>`;
+            } else {
+                const recipient = querySnap.docs[0].data();
+                searchResults.innerHTML = `
+                    <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                        <span class="text-white">${recipient.username}</span>
+                        <button id="start-chat-btn" class="btn btn-primary px-4 py-2 rounded-md">Chat</button>
+                    </div>
+                `;
+                // Simplified: Just call handleInitiateChat
+                document.getElementById('start-chat-btn').addEventListener('click', () => handleInitiateChat(recipient));
+            }
+        }
+        
+        // --- THIS IS THE NEW, SIMPLIFIED CHAT STARTER ---
+        async function handleInitiateChat(recipient) {
+            searchResults.innerHTML = ''; // Clear search results
+            
+            // 1. Create the Room ID
             const usernames = [currentUser.username, recipient.username].sort();
             const roomId = usernames.join('-');
 
             try {
-                // 4. Derive the key from the *combined* secret
-                cryptoKey = await deriveKey(sharedSecret, roomId);
                 currentRoomId = roomId;
 
-                // 5. Test decryption to see if key is valid (by trying to decrypt their text)
-                const testRoomRef = doc(db, `/artifacts/${appId}/public/data/e2ee-chat`, currentRoomId);
-                const docSnap = await getDoc(testRoomRef);
-                
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    // Use recipient.uid, which is correct even for recent chats
-                    const otherUserKey = recipient.uid; 
-                    
-                    if(data[otherUserKey]) {
-                        // This will fail if the code is wrong, and jump to catch block
-                        await decryptText(data[otherUserKey], cryptoKey);
-                    }
-                }
-                
-                // 6. Success! Save to recents (no secret) and start chat
+                // 2. Success! Save to recents and start chat
                 saveRecentChat(recipient); // Just saves uid and username
                 listenToRoom();
                 showChatScreen(currentUser.username, recipient.username);
 
             } catch (error) {
                 console.error("Error starting chat:", error);
-                // This is the error the user is seeing.
-                // We need to show this error on the dashboard, not just in searchResults.
-                // Let's add an error field to the dashboard.
-                // For now, I'll just re-use searchResults.
-                searchResults.innerHTML = `<p class="text-red-400">Could not start chat. The code you entered is incorrect.</p>`;
-                
-                // Also delete the recent chat if it was clicked
-                // But we don't know if it was.
-                // Let's just show the error.
-            }
-        }
-        
-        // *** HERE IS THE OTHER FIX ***
-        async function decryptText(encryptedString, key) {
-            try {
-                const [ivString, encryptedData] = encryptedString.split(':');
-                if (!ivString || !encryptedData) {
-                    return "DECRYPTION FAILED: Invalid data format.";
-                }
-                
-                const iv = new Uint8Array(atob(ivString).split('').map(c => c.charCodeAt(0)));
-                const data = new Uint8Array(atob(encryptedData).split('').map(c => c.charCodeAt(0)));
-                
-                // *** FIX: "AES-GGCM" to "AES-GCM" ***
-                const decrypted = await crypto.subtle.decrypt(
-                    { name: "AES-GCM", iv: iv },
-                    key,
-                    data
-                );
-                
-                const dec = new TextDecoder();
-                return dec.decode(decrypted);
-            } catch (error) {
-                console.error("Decryption error:", error);
-                // This error will now correctly trigger the `catch` block in `handleInitiateChat`
-                throw new Error("Decryption failed. Invalid key.");
+                searchResults.innerHTML = `<p class="text-red-400">Could not start chat. An error occurred.</p>`;
             }
         }
 
+        // Removed decryptText
 
         // --- Recent Chats Functions ---
         
@@ -677,14 +532,10 @@
             }
         }
 
-        // MODIFIED: No longer saves secret
         function saveRecentChat(recipient) {
             let chats = getRecentChats();
-            // Remove existing entry if it exists
             chats = chats.filter(chat => chat.uid !== recipient.uid);
-            // Add to the top
-            chats.unshift({ uid: recipient.uid, username: recipient.username }); // No secret
-            // Keep only last 5
+            chats.unshift({ uid: recipient.uid, username: recipient.username });
             chats = chats.slice(0, 5);
             localStorage.setItem('recentChats', JSON.stringify(chats));
         }
@@ -711,11 +562,7 @@
                     <span class="text-white font-medium">${chat.username}</span>
                     <button class="btn btn-primary px-4 py-2 rounded-md text-sm">Chat</button>
                 `;
-                // MODIFIED: This now calls the *same* function as search
                 item.querySelector('button').addEventListener('click', () => {
-                    // We need the full recipient object, not just the chat object.
-                    // This is a problem. We need to store the full recipient object.
-                    // No, let's just pass what we have. `handleInitiateChat` just needs uid and username.
                     handleInitiateChat(chat); 
                 });
                 recentChatsList.appendChild(item);
@@ -726,14 +573,14 @@
         // --- Chat Room Functions ---
 
         async function updateFirestoreContent(content) {
-            if (isUpdatingFromFirestore || !cryptoKey || !currentRoomId) return;
+            if (isUpdatingFromFirestore || !currentRoomId) return;
             
-            const encryptedContent = await encryptText(content, cryptoKey);
+            // No encryption
             const roomRef = doc(db, `/artifacts/${appId}/public/data/e2ee-chat`, currentRoomId);
             
             // Update only our part of the document
             await setDoc(roomRef, {
-                [currentUser.uid]: encryptedContent 
+                [currentUser.uid]: content // Save plain text
             }, { merge: true });
         }
 
@@ -748,11 +595,8 @@
                     const otherUserKey = Object.keys(data).find(key => key !== currentUser.uid);
                     
                     if (otherUserKey && data[otherUserKey]) {
-                        try {
-                            theirContent = await decryptText(data[otherUserKey], cryptoKey);
-                        } catch (e) {
-                            theirContent = "DECRYPTION FAILED: Key mismatch."
-                        }
+                        // No decryption needed
+                        theirContent = data[otherUserKey];
                     }
                     
                     isUpdatingFromFirestore = true;
@@ -798,7 +642,6 @@
             const roomRef = doc(db, `/artifacts/${appId}/public/data/e2ee-chat`, currentRoomId);
             await deleteDoc(roomRef);
 
-            cryptoKey = null;
             currentRoomId = null;
             
             showDashboard();
@@ -821,7 +664,6 @@
             
             logoutBtn.addEventListener('click', () => signOut(auth));
             
-            // MODIFIED: Calls the new unified function
             searchBtn.addEventListener('click', async () => {
                 const username = searchInput.value.trim();
                 searchResults.innerHTML = '';
@@ -840,13 +682,7 @@
             });
             searchInput.addEventListener('keyup', (e) => e.key === 'Enter' && searchBtn.click());
             
-            dashUniqueCode.addEventListener('click', () => {
-                navigator.clipboard.writeText(dashUniqueCode.textContent);
-                // Simple feedback
-                const oldText = dashUniqueCode.textContent;
-                dashUniqueCode.textContent = 'Copied!';
-                setTimeout(() => { dashUniqueCode.textContent = oldText; }, 1000);
-            });
+            // Removed unique code copy listener
             
             leaveBtn.addEventListener('click', handleLeave);
             clearBtn.addEventListener('click', handleClear);
