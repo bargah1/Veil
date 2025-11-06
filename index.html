@@ -3,143 +3,107 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Veil — E2EE (Firestore) [DEBUG FIX]</title>
+  <title>Veil — E2EE Ephemeral Chat (Firestore • iMessage UI)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap');
-    :root { --bg-primary:#0C0C0C; --bg-secondary:#181818; --accent:#7A3E9D; --text-primary:#ECECEC; --text-secondary:#A0A0A0; }
-    body { font-family:'Inter',sans-serif; background:var(--bg-primary); color:var(--text-primary); }
-    .card-bg { background:var(--bg-secondary); border:1px solid #2a2a2a; }
-    .input-field { background:#2a2a2a; color:var(--text-primary); border:1px solid #4a4a4a; transition:.2s; }
-    .input-field:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(122,62,157,.5); }
-    .btn-primary { background:var(--accent); color:var(--text-primary); }
-    .btn-primary:hover { opacity:.9; }
-    .btn-secondary { background:#3a3a3a; color:var(--text-primary); }
-    .btn-secondary:hover { background:#4a4a4a; }
-    .btn-danger { background:#9d3e3e; color:var(--text-primary); }
-    .btn-danger:hover { background:#b94e4e; }
-    .chat-textarea { font-family:'Source Code Pro',monospace; background:var(--bg-secondary); color:var(--text-primary); border:1px solid #2a2a2a; caret-color:var(--accent); resize:none; }
-    .chat-textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(122,62,157,.5); }
-    .chat-textarea-readonly { background:#111; color:#a0a0a0; }
-    .status-dot { width:10px; height:10px; border-radius:50%; margin-right:8px; transition:background-color .3s; }
-    .status-online { background:#34D399; }
-    .status-offline { background:#6B7280; }
-    .disabled { opacity:.6; pointer-events:none; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    :root { --bg:#0b0b0c; --panel:#141416; --muted:#9aa0a6; --accent:#7A3E9D; --bubbleSelf:#2b2f33; --bubblePeer:#1f2937; --text:#f3f4f6; }
+    html,body{ height:100%; }
+    body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:var(--bg); color:var(--text); }
+    .card{ background:var(--panel); border:1px solid #26272b; border-radius:16px; }
+    .btn{ transition:.2s; }
+    .btn-primary{ background:var(--accent); color:white; }
+    .btn-primary:hover{ filter:brightness(1.05); }
+    .btn-secondary{ background:#2b2f33; color:white; }
+    .btn-secondary:hover{ filter:brightness(1.1); }
+    .bubble{ max-width:70%; padding:.6rem .9rem; border-radius:18px; line-height:1.35; word-wrap:break-word; }
+    .bubble-self{ background:var(--bubbleSelf); border-top-right-radius:6px; }
+    .bubble-peer{ background:var(--bubblePeer); border-top-left-radius:6px; }
+    .scroll-smooth{ scroll-behavior:smooth; }
+    .disabled{ opacity:.6; pointer-events:none; }
   </style>
 </head>
-<body class="h-full min-h-screen p-4">
-  <div id="app-container" class="w-full max-w-4xl mx-auto">
-    <div id="loading-screen" class="flex flex-col items-center justify-center h-[60vh]">
-      <svg class="animate-spin h-10 w-10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a 8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      <p class="mt-4 text-lg text-[var(--text-secondary)]">Connecting…</p>
-    </div>
-
-    <div id="auth-screen" class="hidden w-full max-w-md mx-auto">
-      <div class="card-bg p-8 rounded-lg shadow-2xl">
-        <h2 class="text-3xl font-bold text-center mb-6">Veil</h2>
-        <form id="signup-form" class="space-y-4">
-          <h3 class="text-xl font-semibold">Create an Account</h3>
-          <div>
-            <label class="block text-sm text-[var(--text-secondary)]">Username</label>
-            <input id="signup-username" class="input-field w-full p-3 mt-1 rounded-md" required />
-          </div>
-          <div>
-            <label class="block text-sm text-[var(--text-secondary)]">Password</label>
-            <input type="password" id="signup-password" class="input-field w-full p-3 mt-1 rounded-md" required />
-          </div>
-          <button class="btn-primary w-full py-3 rounded-md font-semibold" type="submit">Sign Up</button>
-          <p id="signup-error" class="text-red-400 text-sm text-center"></p>
+<body class="h-full">
+  <div class="max-w-5xl mx-auto p-4 h-full">
+    <!-- Auth / Onboarding -->
+    <div id="auth-screen" class="card p-6 max-w-md mx-auto mt-10"">
+      <h1 class="text-3xl font-bold mb-6 text-center">Veil</h1>
+      <p class="text-sm text-gray-400 mb-6 text-center">End‑to‑end encrypted • Ephemeral • No history</p>
+      <div class="space-y-5">
+        <form id="signup-form" class="space-y-3">
+          <h2 class="text-lg font-semibold">Create account</h2>
+          <input id="signup-username" placeholder="Username" class="w-full p-3 rounded-md bg-[#1b1c1f] border border-[#2b2c31]" required />
+          <input id="signup-password" type="password" placeholder="Password" class="w-full p-3 rounded-md bg-[#1b1c1f] border border-[#2b2c31]" required />
+          <button class="btn btn-primary w-full py-3 rounded-md">Sign up</button>
+          <p id="signup-error" class="text-rose-400 text-sm"></p>
         </form>
-
-        <form id="login-form" class="hidden space-y-4">
-          <h3 class="text-xl font-semibold">Log In</h3>
-          <div>
-            <label class="block text-sm text-[var(--text-secondary)]">Username</label>
-            <input id="login-username" class="input-field w-full p-3 mt-1 rounded-md" required />
-          </div>
-          <div>
-            <label class="block text-sm text-[var(--text-secondary)]">Password</label>
-            <input type="password" id="login-password" class="input-field w-full p-3 mt-1 rounded-md" required />
-          </div>
-          <button class="btn-primary w-full py-3 rounded-md font-semibold" type="submit">Log In</button>
-          <p id="login-error" class="text-red-400 text-sm text-center"></p>
+        <div class="h-px bg-[#2b2c31]"></div>
+        <form id="login-form" class="space-y-3">
+          <h2 class="text-lg font-semibold">Log in</h2>
+          <input id="login-username" placeholder="Username" class="w-full p-3 rounded-md bg-[#1b1c1f] border border-[#2b2c31]" required />
+          <input id="login-password" type="password" placeholder="Password" class="w-full p-3 rounded-md bg-[#1b1c1f] border border-[#2b2c31]" required />
+          <button class="btn btn-primary w-full py-3 rounded-md">Log in</button>
+          <p id="login-error" class="text-rose-400 text-sm"></p>
         </form>
-
-        <p class="text-center text-sm text-[var(--text-secondary)] mt-6">
-          <span id="auth-toggle-text">Already have an account?</span>
-          <a href="#" id="auth-toggle-link" class="font-medium underline">Log In</a>
-        </p>
       </div>
     </div>
 
-    <div id="dashboard-screen" class="hidden w-full max-w-lg mx-auto">
-      <div class="card-bg p-8 rounded-lg shadow-2xl">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-2xl font-bold">Welcome, <span id="dash-username" class="text-[var(--accent)]"></span></h2>
-          <button id="logout-btn" class="btn-secondary px-4 py-2 rounded-md font-semibold">Logout</button>
+    <!-- Dashboard -->
+    <div id="dash-screen" class="hidden grid md:grid-cols-3 gap-4 h-[90vh]">
+      <div class="card p-4 flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <div class="text-sm text-gray-400">Signed in as</div>
+            <div id="me-name" class="font-semibold"></div>
+          </div>
+          <button id="logout-btn" class="btn btn-secondary px-3 py-2 rounded-md">Logout</button>
         </div>
-        <div class="space-y-4">
-          <label class="block text-sm text-[var(--text-secondary)]">Search for a user to chat with</label>
+        <div class="mt-2">
+          <label class="text-sm text-gray-400">Find user</label>
+          <div class="flex gap-2 mt-2">
+            <input id="search-user" class="flex-1 p-2.5 rounded-md bg-[#1b1c1f] border border-[#2b2c31]" placeholder="Exact username" />
+            <button id="search-btn" class="btn btn-primary px-3 py-2 rounded-md disabled" disabled>Chat</button>
+          </div>
+          <div id="search-result" class="mt-2 text-sm"></div>
+        </div>
+        <div class="mt-4">
+          <div class="text-sm text-gray-400 mb-1">Recent</div>
+          <div id="recent-list" class="space-y-2 text-sm text-gray-300"></div>
+        </div>
+      </div>
+
+      <!-- Chat panel -->
+      <div class="card md:col-span-2 p-0 flex flex-col overflow-hidden">
+        <div class="px-4 py-3 border-b border-[#2b2c31] flex items-center justify-between">
+          <div>
+            <div class="text-xs text-gray-400">Chatting with</div>
+            <div id="peer-name" class="font-semibold"></div>
+          </div>
           <div class="flex gap-2">
-            <input id="search-username" class="input-field w-full p-3 rounded-md" placeholder="Exact username…" />
-            <button id="search-btn" class="btn-primary px-5 py-3 rounded-md font-semibold disabled" disabled>Search</button>
-          </div>
-          <div id="search-results" class="mt-2"></div>
-        </div>
-        <div class="mt-8">
-          <h3 class="text-xl font-semibold mb-4">Recent Chats</h3>
-          <div id="recent-chats-list" class="space-y-3 text-[var(--text-secondary)]">No recent chats.</div>
-        </div>
-      </div>
-    </div>
-
-    <div id="chat-screen" class="hidden h-[80vh] flex flex-col">
-      <div class="flex justify-between items-center mb-3">
-        <div>
-          <h2 class="text-xl font-bold">Chat with <span id="recipient-display"></span></h2>
-          <p class="text-sm text-[var(--text-secondary)]">You are <span id="user-display" class="text-[var(--accent)]"></span></p>
-          <div class="flex items-center gap-2">
-            <span id="online-status-dot" class="status-dot status-offline"></span>
-            <span id="online-status-text" class="text-sm text-[var(--text-secondary)]">Offline</span>
-            <span id="typing-indicator" class="text-sm text-[var(--text-secondary)] hidden">— typing…</span>
+            <button id="leave-btn" class="btn btn-secondary px-3 py-2 rounded-md">Leave</button>
           </div>
         </div>
-        <div class="flex gap-2">
-          <button id="clear-btn" class="btn-secondary px-4 py-2 rounded-md font-semibold">Clear My Pad</button>
-          <button id="leave-btn" class="btn-danger px-4 py-2 rounded-md font-semibold">Leave</button>
-        </div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-        <div class="flex flex-col">
-          <label class="text-sm text-[var(--text-secondary)] mb-2">Your Pad</label>
-          <textarea id="my-chat-pad" class="chat-textarea w-full flex-1 p-4 rounded-lg text-lg leading-7" spellcheck="false"></textarea>
-        </div>
-        <div class="flex flex-col">
-          <label class="text-sm text-[var(--text-secondary)] mb-2">Their Pad</label>
-          <textarea id="their-chat-pad" class="chat-textarea chat-textarea-readonly w-full flex-1 p-4 rounded-lg text-lg leading-7" readonly></textarea>
+        <div id="log" class="flex-1 overflow-y-auto px-4 py-4 space-y-2 scroll-smooth"></div>
+        <div class="p-3 border-t border-[#2b2c31]">
+          <div class="flex items-end gap-2">
+            <textarea id="composer" rows="1" placeholder="Message…" class="flex-1 bg-[#1b1c1f] border border-[#2b2c31] rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-purple-500 max-h-40"></textarea>
+            <button id="send-btn" class="btn btn-primary px-4 py-2 rounded-lg disabled" disabled>Send</button>
+          </div>
+          <div id="typing" class="text-xs text-gray-400 mt-1 h-4"></div>
         </div>
       </div>
     </div>
   </div>
 
   <script type="module">
-    // DEBUG LOGGER
-    const log = (...a)=>{ try{ console.log('[VEIL]',...a);}catch{} };
-    const warn = (...a)=>{ try{ console.warn('[VEIL]',...a);}catch{} };
-    const err = (...a)=>{ try{ console.error('[VEIL]',...a);}catch{} };
+    // --- Minimal, Firestore-only, true E2EE, ephemeral transport ---
+    const log = (...a)=>{ try{ console.log('[Veil]',...a);}catch{} };
+    const err = (...a)=>{ try{ console.error('[Veil]',...a);}catch{} };
 
-    log('Script tag entered');
-
-    // Firebase v11
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs, deleteDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    import { getDatabase, ref as rtdbRef, onDisconnect, onValue, set as rtdbSet, remove as rtdbRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, getDocs, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyAO6sKjbBKdWm3MXggc-Iliywxh7CwSKok",
       authDomain: "capsc-d160e.firebaseapp.com",
@@ -147,319 +111,311 @@
       storageBucket: "capsc-d160e.firebasestorage.app",
       messagingSenderId: "1069210585933",
       appId: "1:1069210585933:web:54f05cf195caeea8320504",
-      measurementId: "G-4957PFGHS2",
-      databaseURL: `https://capsc-d160e-default-rtdb.asia-southeast1.firebasedatabase.app`
+      measurementId: "G-4957PFGHS2"
     };
 
-    const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'veil-app';
-    const AUTO_DELETE_MINUTES = 5;
+    const APP_ID = 'veil-app';
+    const ROOM_TTL_MIN = 5;              // auto-delete window
+    const TYPING_IDLE_MS = 1500;         // typing indicator timeout
 
-    let app, db, auth, rtdb, currentUser = null, currentRoomId = null;
-    let unsubscribeRoom = ()=>{}; let unsubscribePresence = ()=>{};
-    let sharedKey = null; let myECDHKeyPair = null; let typingTimeout = null;
+    let app, db, auth, me=null, roomId=null, unsubRoom=()=>{};
+    let myECDH=null, sharedKey=null;     // crypto state
 
     // DOM
-    const loadingScreen = document.getElementById('loading-screen');
     const authScreen = document.getElementById('auth-screen');
-    const dashboardScreen = document.getElementById('dashboard-screen');
-    const chatScreen = document.getElementById('chat-screen');
-    const signupForm = document.getElementById('signup-form');
-    const loginForm = document.getElementById('login-form');
-    const authToggleLink = document.getElementById('auth-toggle-link');
-    const authToggleText = document.getElementById('auth-toggle-text');
-    const signupError = document.getElementById('signup-error');
-    const loginError = document.getElementById('login-error');
-    const dashUsername = document.getElementById('dash-username');
-    const logoutBtn = document.getElementById('logout-btn');
+    const dashScreen = document.getElementById('dash-screen');
+    const meName = document.getElementById('me-name');
+    const searchUser = document.getElementById('search-user');
     const searchBtn = document.getElementById('search-btn');
-    const searchInput = document.getElementById('search-username');
-    const searchResults = document.getElementById('search-results');
-    const recentChatsList = document.getElementById('recent-chats-list');
-    const recipientDisplay = document.getElementById('recipient-display');
-    const userDisplay = document.getElementById('user-display');
-    const myChatPad = document.getElementById('my-chat-pad');
-    const theirChatPad = document.getElementById('their-chat-pad');
-    const clearBtn = document.getElementById('clear-btn');
+    const searchResult = document.getElementById('search-result');
+    const recentList = document.getElementById('recent-list');
+    const peerName = document.getElementById('peer-name');
     const leaveBtn = document.getElementById('leave-btn');
-    const onlineStatusDot = document.getElementById('online-status-dot');
-    const onlineStatusText = document.getElementById('online-status-text');
-    const typingIndicator = document.getElementById('typing-indicator');
+    const composer = document.getElementById('composer');
+    const sendBtn = document.getElementById('send-btn');
+    const logView = document.getElementById('log');
+    const typingView = document.getElementById('typing');
 
-    // UI helpers
-    function showAuthScreen(){
-      loadingScreen.classList.add('hidden'); authScreen.classList.remove('hidden');
-      dashboardScreen.classList.add('hidden'); chatScreen.classList.add('hidden');
-      disableSearch(true);
-      log('UI => Auth');
-    }
-    function showDashboard(){
-      loadingScreen.classList.add('hidden'); authScreen.classList.add('hidden');
-      dashboardScreen.classList.remove('hidden'); chatScreen.classList.add('hidden');
-      displayRecentChats();
-      disableSearch(!currentUser);
-      log('UI => Dashboard');
-    }
-    function showChatScreen(username, recipient){
-      loadingScreen.classList.add('hidden'); authScreen.classList.add('hidden');
-      dashboardScreen.classList.add('hidden'); chatScreen.classList.remove('hidden');
-      userDisplay.textContent = username||''; recipientDisplay.textContent = recipient||'';
-      myChatPad.value=''; theirChatPad.value=''; myChatPad.focus();
-      log('UI => Chat');
-    }
-    function toggleAuthForms(){
-      const showingSignup = !signupForm.classList.contains('hidden');
-      if (showingSignup){ signupForm.classList.add('hidden'); loginForm.classList.remove('hidden'); authToggleText.textContent = "Don't have an account?"; authToggleLink.textContent = 'Sign Up'; }
-      else { loginForm.classList.add('hidden'); signupForm.classList.remove('hidden'); authToggleText.textContent = 'Already have an account?'; authToggleLink.textContent = 'Log In'; }
-    }
-    function disableSearch(disabled){
-      try{
-        if (disabled){ searchBtn.setAttribute('disabled','true'); searchBtn.classList.add('disabled'); }
-        else { searchBtn.removeAttribute('disabled'); searchBtn.classList.remove('disabled'); }
-      }catch{}
-    }
+    // Auth forms
+    const suForm = document.getElementById('signup-form');
+    const suU = document.getElementById('signup-username');
+    const suP = document.getElementById('signup-password');
+    const suErr = document.getElementById('signup-error');
+    const liForm = document.getElementById('login-form');
+    const liU = document.getElementById('login-username');
+    const liP = document.getElementById('login-password');
+    const liErr = document.getElementById('login-error');
+    const logoutBtn = document.getElementById('logout-btn');
 
-    // INIT
-    (async function init(){
-      log('Init start');
-      try {
-        app = initializeApp(firebaseConfig); log('Firebase app initialized');
-        db = getFirestore(app); log('Firestore ready');
-        try { rtdb = getDatabase(app); log('Realtime DB ready'); } catch(e){ warn('Realtime DB not ready, presence disabled', e); rtdb = null; }
-        auth = getAuth(app); log('Auth ready');
-      } catch(e){ err('Firebase init failed', e); showAuthScreen(); return; }
+    // --- Init ---
+    init();
+    function showAuth(){ authScreen.classList.remove('hidden'); dashScreen.classList.add('hidden'); }
+    function showDash(){ authScreen.classList.add('hidden'); dashScreen.classList.remove('hidden'); }
 
-      const authTimeout = setTimeout(()=>{ warn('Auth took long; forcing Auth UI'); showAuthScreen(); }, 3000);
-      onAuthStateChanged(auth, async (user) => {
-        clearTimeout(authTimeout);
-        log('Auth state changed:', !!user);
-        if (user) {
-          try{
-            await loadUserData(user.uid);
-            // enable search only after currentUser exists
-            disableSearch(false);
-            showDashboard();
-          } catch(e){ err('loadUserData failed:', e); showAuthScreen(); }
+    async function init(){
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      auth = getAuth(app);
+      onAuthStateChanged(auth, async (u)=>{
+        if (u){
+          const uref = doc(db, `/artifacts/${APP_ID}/public/data/users`, u.uid);
+          const snap = await getDoc(uref);
+          if (!snap.exists()){ await signOut(auth); return; }
+          me = { uid:u.uid, ...snap.data() };
+          meName.textContent = me.username;
+          searchBtn.disabled=false; searchBtn.classList.remove('disabled');
+          showDash();
+          renderRecents();
         } else {
-          currentUser = null; disableSearch(true); showAuthScreen();
+          me=null; showAuth();
         }
       });
 
-      setupEventListeners();
-    })();
+      // auth handlers
+      suForm.addEventListener('submit', async (e)=>{
+        e.preventDefault(); suErr.textContent='';
+        const un = suU.value.trim(); const pw = suP.value.trim();
+        if (un.length<3){ suErr.textContent='Username must be at least 3 chars'; return; }
+        const q1 = query(collection(db, `/artifacts/${APP_ID}/public/data/users`), where('username','==', un));
+        const s1 = await getDocs(q1); if (!s1.empty){ suErr.textContent='Username taken'; return; }
+        const cred = await createUserWithEmailAndPassword(auth, `${un}@e2ee-chat.app`, pw);
+        await setDoc(doc(db, `/artifacts/${APP_ID}/public/data/users`, cred.user.uid), { uid: cred.user.uid, username: un });
+      });
 
-    // USERS
-    async function loadUserData(uid){
-      log('loadUserData', uid);
-      const userRef = doc(db, `/artifacts/${APP_ID}/public/data/users`, uid);
-      const snap = await getDoc(userRef);
-      if (snap.exists()){
-        currentUser = { uid, ...snap.data() };
-        dashUsername.textContent = currentUser.username||'';
-        log('User loaded', currentUser.username);
-      } else {
-        warn('No user profile, signing out'); await signOut(auth);
-      }
+      liForm.addEventListener('submit', async (e)=>{
+        e.preventDefault(); liErr.textContent='';
+        try { await signInWithEmailAndPassword(auth, `${liU.value.trim()}@e2ee-chat.app`, liP.value.trim()); }
+        catch(_){ liErr.textContent='Invalid username or password'; }
+      });
+
+      logoutBtn.addEventListener('click', ()=> signOut(auth));
+
+      // Search
+      searchBtn.addEventListener('click', doSearch);
+      searchUser.addEventListener('keyup', (e)=> e.key==='Enter' && doSearch());
+
+      // Chat actions
+      sendBtn.addEventListener('click', sendMessage);
+      composer.addEventListener('input', handleTyping);
+      leaveBtn.addEventListener('click', leaveRoom);
+
+      // crypto readiness
+      if (!window.isSecureContext){ alert('This app requires HTTPS for encryption (crypto.subtle). Host on https:// or localhost.'); }
     }
 
-    // AUTH handlers
-    async function handleSignup(e){
-      e.preventDefault(); signupError.textContent='';
-      const username = document.getElementById('signup-username').value.trim();
-      const password = document.getElementById('signup-password').value.trim();
-      if (username.length < 3) { signupError.textContent = 'Username must be at least 3 characters.'; return; }
-      const q = query(collection(db, `/artifacts/${APP_ID}/public/data/users`), where('username','==',username));
-      const qSnap = await getDocs(q); if (!qSnap.empty){ signupError.textContent = 'Username is taken.'; return; }
-      try{
-        const cred = await createUserWithEmailAndPassword(auth, `${username}@e2ee-chat.app`, password);
-        await setDoc(doc(db, `/artifacts/${APP_ID}/public/data/users`, cred.user.uid), { uid: cred.user.uid, username });
-        log('Signup OK');
-      }catch(e){ err('Signup error', e); signupError.textContent = (e.message||'Error').replace('Firebase: ',''); }
+    function recentKey(){ return 'veil_recents'; }
+    function getRecents(){ try{ return JSON.parse(localStorage.getItem(recentKey())||'[]'); }catch{ return []; } }
+    function pushRecent(item){ let r = getRecents().filter(x=>x.uid!==item.uid); r.unshift(item); r=r.slice(0,6); localStorage.setItem(recentKey(), JSON.stringify(r)); }
+    function renderRecents(){ const r = getRecents(); recentList.innerHTML = r.length? '' : '<div class="text-gray-500">No recent chats</div>'; r.forEach(x=>{ const el=document.createElement('div'); el.className='flex items-center justify-between bg-[#1b1c1f] p-2.5 rounded-md'; el.innerHTML = `<div>${x.username}</div><button class="btn btn-secondary px-2 py-1 rounded-md text-sm">Open</button>`; el.querySelector('button').addEventListener('click', ()=> startChatWithUid(x.uid, x.username)); recentList.appendChild(el); }); }
+
+    async function doSearch(){
+      if (!me) return showAuth();
+      const uname = (searchUser.value||'').trim();
+      searchResult.textContent='';
+      if (!uname) return;
+      if (uname === me.username){ searchResult.innerHTML='<span class="text-amber-400">You cannot chat with yourself.</span>'; return; }
+      const q2 = query(collection(db, `/artifacts/${APP_ID}/public/data/users`), where('username','==', uname));
+      const s2 = await getDocs(q2);
+      if (s2.empty){ searchResult.innerHTML='<span class="text-rose-400">User not found.</span>'; return; }
+      const rec = s2.docs[0].data();
+      searchResult.innerHTML = `<div class="flex items-center justify-between bg-[#1b1c1f] p-2.5 rounded-md"><div>${rec.username}</div><button id="start-chat" class="btn btn-primary px-3 py-1.5 rounded-md">Chat</button></div>`;
+      document.getElementById('start-chat').addEventListener('click', ()=> startChatWithUid(rec.uid, rec.username));
     }
 
-    async function handleLogin(e){
-      e.preventDefault(); loginError.textContent='';
-      const username = document.getElementById('login-username').value.trim();
-      const password = document.getElementById('login-password').value.trim();
-      try{ await signInWithEmailAndPassword(auth, `${username}@e2ee-chat.app`, password); log('Login OK'); }
-      catch(e){ err('Login error', e); loginError.textContent = 'Invalid username or password.'; }
-    }
+    function roomFor(userA, userB){ return [userA, userB].sort().join('-'); }
 
-    // SAFETY: ensure currentUser exists before any action that uses it
-    function requireCurrentUser(context){
-      if (!currentUser){
-        warn(`Blocked ${context}: no currentUser yet`);
-        alert('Please log in again.');
-        showAuthScreen();
-        return false;
-      }
-      return true;
-    }
+    async function startChatWithUid(peerUid, peerUsername){
+      if (!me) return showAuth();
+      peerName.textContent = peerUsername;
+      roomId = roomFor(me.username, peerUsername);
+      const rref = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, roomId);
 
-    // SEARCH / RECENTS
-    function getRecentChats(){ try{ return JSON.parse(localStorage.getItem('recentChats')||'[]'); }catch{return []} }
-    function saveRecentChat(u){ try{ let chats = getRecentChats().filter(c=>c.uid!==u.uid); chats.unshift({uid:u.uid, username:u.username}); chats = chats.slice(0,5); localStorage.setItem('recentChats', JSON.stringify(chats)); }catch(e){ warn('saveRecentChat failed', e);} }
-    function displayRecentChats(){
-      try{
-        const list = getRecentChats();
-        if(!list.length){ recentChatsList.textContent='No recent chats.'; return; }
-        recentChatsList.innerHTML='';
-        list.forEach(c=>{
-          const div=document.createElement('div');
-          div.className='flex justify-between items-center bg-[#2a2a2a] p-3 rounded-lg';
-          div.innerHTML=`<span class="font-medium">${c.username}</span><button class="btn-primary px-4 py-2 rounded-md text-sm">Chat</button>`;
-          div.querySelector('button').addEventListener('click',()=>startChatByUid(c.uid,c.username));
-          recentChatsList.appendChild(div);
+      // init room if missing
+      const rsnap = await getDoc(rref);
+      if (!rsnap.exists()){
+        await setDoc(rref, {
+          participants: [me.uid, peerUid],
+          usernames: [me.username, peerUsername].sort(),
+          createdAt: serverTimestamp(),
+          expiresAt: new Date(Date.now()+ROOM_TTL_MIN*60*1000),
+          keys: {},
+          buffers: {},   // ephemeral message buffers per uid
+          typing: {},    // typing booleans per uid
+          lastActive: serverTimestamp()
         });
-      }catch(e){ warn('displayRecentChats failed', e); }
-    }
-
-    async function handleSearch(){
-      searchResults.innerHTML='';
-      if (!requireCurrentUser('search')) return;
-      const uname = (searchInput.value||'').trim();
-      if(!uname) return;
-      if (currentUser && uname === currentUser.username){ searchResults.innerHTML = `<p class='text-yellow-400'>You can't chat with yourself.</p>`; return; }
-      const q = query(collection(db, `/artifacts/${APP_ID}/public/data/users`), where('username','==',uname));
-      const snap = await getDocs(q);
-      if (snap.empty){ searchResults.innerHTML = `<p class='text-red-400'>User not found.</p>`; }
-      else {
-        const r = snap.docs[0].data();
-        searchResults.innerHTML = `<div class='flex justify-between items-center bg-[#2a2a2a] p-3 rounded-lg'><span class='font-medium'>${r.username}</span><button id='start-chat-btn' class='btn-primary px-4 py-2 rounded-md'>Chat</button></div>`;
-        document.getElementById('start-chat-btn').addEventListener('click',()=>startChatByUid(r.uid, r.username));
       }
+
+      // ECDH key exchange -> sharedKey
+      await ensureSharedKey(rref, me.uid);
+
+      // listener for peer buffer + typing
+      if (unsubRoom) unsubRoom();
+      unsubRoom = onSnapshot(rref, async (snap)=>{
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const otherUid = (data.participants||[]).find(x=>x!==me.uid);
+
+        // show typing
+        const isTyping = !!(data.typing && data.typing[otherUid]);
+        typingView.textContent = isTyping? 'typing…' : '';
+
+        // incoming message buffer from peer
+        const payload = data.buffers && data.buffers[otherUid];
+        if (payload && payload.c && payload.iv){
+          const txt = await decryptPayload(payload);
+          if (txt !== null) appendBubble('peer', txt);
+          // clear peer buffer to keep no-history
+          await updateDoc(rref, { [`buffers.${otherUid}`]: null, lastActive: serverTimestamp(), expiresAt: new Date(Date.now()+ROOM_TTL_MIN*60*1000) });
+        }
+      });
+
+      // UI state
+      composer.value=''; logView.innerHTML='';
+      sendBtn.disabled=false; sendBtn.classList.remove('disabled');
+      pushRecent({ uid: peerUid, username: peerUsername });
+      renderRecents();
     }
 
-    function roomIdFor(userA, userB){ return [userA||'', userB||''].sort().join('-'); }
+    // --- E2EE helpers ---
+    async function ensureSharedKey(roomRef, myUid){
+      if (!window.isSecureContext) throw new Error('HTTPS required for crypto.subtle');
+      if (!myECDH){ myECDH = await crypto.subtle.generateKey({ name:'ECDH', namedCurve:'P-256' }, true, ['deriveKey']); }
+      const myPub = await crypto.subtle.exportKey('jwk', myECDH.publicKey);
+      await updateDoc(roomRef, { [`keys.${myUid}`]: myPub, lastActive: serverTimestamp(), expiresAt: new Date(Date.now()+ROOM_TTL_MIN*60*1000) });
 
-    async function startChatByUid(recipientUid, recipientUsername){
-      if (!requireCurrentUser('startChat')) return;
-      if (!recipientUid || !recipientUsername){ warn('startChatByUid missing recipient'); return; }
-      log('Start chat with', recipientUsername);
-      const usernames = [currentUser.username, recipientUsername].sort();
-      currentRoomId = roomIdFor(currentUser.username, recipientUsername);
-      await initRoomIfMissing(currentRoomId, usernames, [currentUser.uid, recipientUid]);
-      saveRecentChat({uid: recipientUid, username: recipientUsername});
-      try { await setupCrypto(currentRoomId, recipientUid); }
-      catch(e){ err('Crypto setup failed', e); alert('Secure crypto not available here (needs HTTPS).'); return; }
-      listenToRoom(currentRoomId, recipientUid);
-      setupPresence(currentRoomId);
-      showChatScreen(currentUser.username, recipientUsername);
+      const otherPub = await waitOtherKey(roomRef, myUid);
+      const otherKey = await crypto.subtle.importKey('jwk', otherPub, { name:'ECDH', namedCurve:'P-256' }, true, []);
+      sharedKey = await crypto.subtle.deriveKey({ name:'ECDH', public: otherKey }, myECDH.privateKey, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
     }
 
-    async function initRoomIfMissing(roomId, usernames, uids){
-      const roomRef = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, roomId);
-      const roomSnap = await getDoc(roomRef);
-      if (!roomSnap.exists()){
-        log('Creating room', roomId);
-        await setDoc(roomRef, { participants: uids, usernames, createdAt: serverTimestamp(), expiresAt: new Date(Date.now()+AUTO_DELETE_MINUTES*60*1000), keys:{}, pads:{}, typing:{}, lastActive: serverTimestamp() });
-      } else { log('Room exists'); }
-    }
-
-    // CRYPTO
-    async function setupCrypto(roomId, recipientUid){
-      if (!window.isSecureContext){ throw new Error('Insecure context — crypto.subtle requires HTTPS'); }
-      if (!requireCurrentUser('setupCrypto')) throw new Error('No currentUser');
-      myECDHKeyPair = await loadOrCreateECDH();
-      const myPubJwk = await crypto.subtle.exportKey('jwk', myECDHKeyPair.publicKey);
-      const roomRef = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, roomId);
-      await updateDoc(roomRef, { [`keys.${currentUser.uid}`]: myPubJwk, lastActive: serverTimestamp(), expiresAt: new Date(Date.now()+AUTO_DELETE_MINUTES*60*1000) });
-      log('Published my public key');
-      const otherJwk = await waitForOtherKey(roomRef, recipientUid);
-      log('Got other public key');
-      const otherPubKey = await crypto.subtle.importKey('jwk', otherJwk, { name: 'ECDH', namedCurve: 'P-256' }, true, []);
-      sharedKey = await crypto.subtle.deriveKey({ name: 'ECDH', public: otherPubKey }, myECDHKeyPair.privateKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt','decrypt']);
-      log('Shared key derived');
-    }
-
-    function waitForOtherKey(roomRef, otherUid){
+    function waitOtherKey(roomRef, myUid){
       return new Promise((resolve, reject)=>{
-        const t = setTimeout(()=>{ unsubscribe(); reject(new Error('Timed out waiting for peer key')); }, 15000);
-        const unsubscribe = onSnapshot(roomRef, (s)=>{ const data = s.data(); if (data?.keys && data.keys[otherUid]){ clearTimeout(t); unsubscribe(); resolve(data.keys[otherUid]); } }, (e)=>{ clearTimeout(t); reject(e); });
+        const stop = onSnapshot(roomRef, (s)=>{
+          const d = s.data();
+          if (!d || !d.keys) return;
+          const other = Object.entries(d.keys).find(([k,_])=>k!==myUid);
+          if (other){ stop(); resolve(other[1]); }
+        }, (e)=>{ reject(e); });
+        setTimeout(()=>{ try{ stop(); }catch{} reject(new Error('Peer key timeout')); }, 15000);
       });
     }
 
-    async function loadOrCreateECDH(){
-      const existing = localStorage.getItem('veil_ecdh_key');
-      if (existing){
-        try { const { pub, priv } = JSON.parse(existing); const publicKey = await crypto.subtle.importKey('jwk', pub, {name:'ECDH', namedCurve:'P-256'}, true, []); const privateKey = await crypto.subtle.importKey('jwk', priv, {name:'ECDH', namedCurve:'P-256'}, false, ['deriveKey']); log('Loaded ECDH from storage'); return { publicKey, privateKey }; } catch(e){ warn('Stored ECDH invalid, regenerating', e); }
-      }
-      const kp = await crypto.subtle.generateKey({name:'ECDH', namedCurve:'P-256'}, true, ['deriveKey']);
-      const pub = await crypto.subtle.exportKey('jwk', kp.publicKey);
-      const priv = await crypto.subtle.exportKey('jwk', kp.privateKey);
-      localStorage.setItem('veil_ecdh_key', JSON.stringify({ pub, priv }));
-      log('Generated new ECDH keypair');
-      return kp;
+    async function encryptText(text){
+      if (!sharedKey) return null;
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const pt = new TextEncoder().encode(text);
+      const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, sharedKey, pt);
+      return { c: btoa(String.fromCharCode(...new Uint8Array(ct))), iv: btoa(String.fromCharCode(...iv)), ts: Date.now() };
     }
 
-    async function encryptPad(text){ if (!sharedKey) return null; const enc = new TextEncoder().encode(text); const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, sharedKey, enc); return { c: b64(new Uint8Array(ct)), iv: b64(iv), ts: Date.now() }; }
-    async function decryptPad(payload){ if (!sharedKey || !payload?.c || !payload?.iv) return ''; try{ const ct = fromB64(payload.c); const iv = fromB64(payload.iv); const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, sharedKey, ct); return new TextDecoder().decode(pt); }catch(e){ warn('Decrypt failed', e); return ''; } }
-    function b64(arr){ return btoa(String.fromCharCode(...arr)); }
-    function fromB64(str){ return Uint8Array.from(atob(str), c=>c.charCodeAt(0)); }
-
-    // SYNC
-    async function updateFirestoreContent(content){
-      if (!currentRoomId) return; if (!sharedKey){ warn('No sharedKey yet; skipping update'); return; }
-      if (!requireCurrentUser('updatePad')) return;
-      const roomRef = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, currentRoomId);
-      const encrypted = await encryptPad(content); if (!encrypted){ warn('encrypt returned null'); return; }
-      try { await setDoc(roomRef, { [`pads.${currentUser.uid}`]: encrypted, [`typing.${currentUser.uid}`]: content.length>0, lastActive: serverTimestamp(), expiresAt: new Date(Date.now()+AUTO_DELETE_MINUTES*60*1000) }, { merge: true }); }
-      catch(e){ err('updateFirestoreContent failed', e); }
-      if (typingTimeout) clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(async ()=>{ try{ await setDoc(roomRef, { [`typing.${currentUser.uid}`]: false, lastActive: serverTimestamp() }, { merge: true }); }catch(e){ warn('typing false set failed', e);} }, 1200);
-    }
-
-    function listenToRoom(roomId, recipientUid){
-      const roomRef = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, roomId);
-      unsubscribeRoom = onSnapshot(roomRef, async (snap)=>{
-        if (!snap.exists()) { warn('Room doc missing'); return; }
-        const data = snap.data();
-        const isTyping = !!data?.typing?.[recipientUid]; typingIndicator.classList.toggle('hidden', !isTyping);
-        const payload = data?.pads?.[recipientUid];
-        if (payload){ const text = await decryptPad(payload); if (theirChatPad.value !== text){ theirChatPad.value = text; } }
-      }, (e)=>{ err('listenToRoom error', e); });
-    }
-
-    // PRESENCE (optional)
-    function setupPresence(roomId){
-      if (!rtdb){ warn('Presence disabled (no RTDB)'); return; }
-      if (!requireCurrentUser('presence')) return;
-      const meRef = rtdbRef(rtdb, `presence/${APP_ID}/${roomId}/${currentUser.uid}`);
-      const connRef = rtdbRef(rtdb, '.info/connected');
-      onValue(connRef, async (snap)=>{ if (snap.val() === true){ try{ await rtdbSet(meRef, { online: true, at: Date.now() }); onDisconnect(meRef).remove(); log('Presence set online'); } catch(e){ warn('Presence set failed', e); } } });
-      const roomPresenceRef = rtdbRef(rtdb, `presence/${APP_ID}/${roomId}`);
-      unsubscribePresence = onValue(roomPresenceRef, (s)=>{ const val = s.val()||{}; const others = Object.entries(val).filter(([uid])=>uid!==currentUser.uid); const anyOnline = others.some(([_,v])=>v?.online); onlineStatusDot.classList.toggle('status-online', anyOnline); onlineStatusDot.classList.toggle('status-offline', !anyOnline); onlineStatusText.textContent = anyOnline? 'Online':'Offline'; });
-    }
-
-    // LEAVE / CLEAR
-    async function handleLeave(){
-      try{ if (rtdb && currentRoomId && currentUser){ await rtdbRemove(rtdbRef(rtdb, `presence/${APP_ID}/${currentRoomId}/${currentUser.uid}`)); } }catch{}
-      try{ unsubscribeRoom&&unsubscribeRoom(); unsubscribePresence&&unsubscribePresence(); }catch{}
-      try{ if (currentRoomId){ await updateDoc(doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, currentRoomId), { expiresAt: new Date(Date.now()+60*1000) }); } } catch(e){ warn('Leave update failed', e); }
-      currentRoomId = null; showDashboard();
-    }
-    async function handleClear(){ myChatPad.value=''; await updateFirestoreContent(''); }
-
-    // EVENTS
-    function setupEventListeners(){
-      signupForm.addEventListener('submit', handleSignup);
-      loginForm.addEventListener('submit', handleLogin);
-      authToggleLink.addEventListener('click', (e)=>{ e.preventDefault(); toggleAuthForms(); });
-      logoutBtn.addEventListener('click', ()=>signOut(auth));
-      searchBtn.addEventListener('click', handleSearch);
-      searchInput.addEventListener('keyup', (e)=> e.key==='Enter' && handleSearch());
-      clearBtn.addEventListener('click', handleClear);
-      leaveBtn.addEventListener('click', handleLeave);
-      myChatPad.addEventListener('input', ()=> updateFirestoreContent(myChatPad.value));
-    }
-
-    // SMOKE TESTS (run once in console)
-    ;(function smoke(){
+    async function decryptPayload({c,iv}){
       try{
-        log('SMOKE: no crash when displayRecentChats() with currentUser=null');
-        const prev = currentUser; currentUser = null; displayRecentChats(); currentUser = prev;
-        log('SMOKE: OK');
-      }catch(e){ err('SMOKE failed', e); }
+        if (!sharedKey) return null;
+        const ct = Uint8Array.from(atob(c), ch=>ch.charCodeAt(0));
+        const _iv = Uint8Array.from(atob(iv), ch=>ch.charCodeAt(0));
+        const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv:_iv }, sharedKey, ct);
+        return new TextDecoder().decode(pt);
+      }catch(e){ err('decrypt failed', e); return null; }
+    }
+
+    // --- Chat UX ---
+    let typingTimer=null;
+    async function handleTyping(){
+      if (!me || !roomId) return;
+      const rref = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, roomId);
+      await updateDoc(rref, { [`typing.${me.uid}`]: true, lastActive: serverTimestamp() });
+      if (typingTimer) clearTimeout(typingTimer);
+      typingTimer = setTimeout(async ()=>{ try{ await updateDoc(rref, { [`typing.${me.uid}`]: false, lastActive: serverTimestamp() }); }catch{} }, TYPING_IDLE_MS);
+    }
+
+    async function sendMessage(){
+      if (!me || !roomId) return;
+      const text = composer.value.trim(); if (!text) return;
+      appendBubble('self', text);
+      composer.value='';
+      const rref = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, roomId);
+      const enc = await encryptText(text); if (!enc) { alert('Encryption unavailable (HTTPS?).'); return; }
+      // Put message into my buffer; peer will read & clear it
+      await updateDoc(rref, { [`buffers.${me.uid}`]: enc, [`typing.${me.uid}`]: false, lastActive: serverTimestamp(), expiresAt: new Date(Date.now()+ROOM_TTL_MIN*60*1000) });
+      // Immediately clear my own buffer (no server history for sender either)
+      setTimeout(async ()=>{ try{ await updateDoc(rref, { [`buffers.${me.uid}`]: null, lastActive: serverTimestamp() }); }catch{} }, 500);
+    }
+
+    function appendBubble(role, text){
+      const wrap = document.createElement('div');
+      wrap.className = `w-full flex ${role==='self'? 'justify-end':''}`;
+      const b = document.createElement('div');
+      b.className = `bubble ${role==='self'? 'bubble-self':'bubble-peer'}`;
+      b.textContent = text;
+      wrap.appendChild(b); logView.appendChild(wrap); logView.scrollTop = logView.scrollHeight;
+    }
+
+    async function leaveRoom(){
+      if (!roomId) return;
+      const rref = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, roomId);
+      try{ await updateDoc(rref, { [`typing.${me.uid}`]: false, expiresAt: new Date(Date.now()+60*1000) }); }catch{}
+      try{ unsubRoom&&unsubRoom(); }catch{}
+      roomId=null; sharedKey=null; myECDH=null; peerName.textContent=''; logView.innerHTML=''; composer.value='';
+      sendBtn.disabled=true; sendBtn.classList.add('disabled');
+    }
+
+    // --- Smoke tests (do not modify existing behavior) ---
+    (async function tests(){
+      try{
+        // 1) AES-GCM roundtrip (independent of room) — ensures crypto works
+        const t = 'hello-crypto';
+        const kk = await crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, true, ['encrypt','decrypt']);
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, kk, new TextEncoder().encode(t));
+        const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, kk, ct);
+        if (new TextDecoder().decode(pt) !== t) throw new Error('AES roundtrip failed');
+        log('TEST: AES-GCM roundtrip OK');
+
+        // 2) UI no-crash without auth
+        const before = authScreen.classList.contains('hidden');
+        showAuth(); showDash(); // toggle ok
+        if (typeof showAuth!== 'function' || typeof showDash !== 'function') throw new Error('UI funcs missing');
+        if (before) showDash(); else showAuth();
+        log('TEST: UI toggles OK');
+      }catch(e){ err('Self-tests failed:', e); }
     })();
+
   </script>
 </body>
 </html>
+
+<!--
+FIRESTORE SECURITY RULES (paste in console -> Firestore Rules)
+--------------------------------------------------------------
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function participant(room) { return signedIn() && room.data.participants.hasOnly([request.auth.uid]) == false && room.data.participants.hasAny([request.auth.uid]); }
+
+    match /artifacts/{app}/public/data {
+      match /users/{uid} {
+        allow read: if signedIn();
+        allow write: if signedIn() && request.auth.uid == uid;
+      }
+      match /e2ee-chat/{roomId} {
+        allow create: if signedIn();
+        allow read, update, delete: if signedIn() && participant(resource);
+      }
+    }
+  }
+}
+
+TTL AUTO-DELETE
+----------------
+Enable TTL on field `expiresAt` for collection path:
+  artifacts/veil-app/public/data/e2ee-chat
+This UI bumps `expiresAt` on activity and shortens on leave.
+
+NOTES
+-----
+- Firestore is used only as a transient transport. Messages are written to a per-user ephemeral `buffers` field and cleared immediately after peer consumption.
+- End-to-end encryption via ECDH(P-256) -> AES-GCM(256). Only ciphertext + IV hit Firestore.
+- No Realtime Database. Typing indicator uses Firestore's `typing` map.
+- To truly minimize history, keep TTL small and do not enable backups/long-term retention.
+-->
