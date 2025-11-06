@@ -3,48 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Veil — E2EE (Firestore)</title>
+  <title>Veil — E2EE (Firestore) [DEBUG FIX]</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap');
-    :root {
-      --bg-primary: #0C0C0C;
-      --bg-secondary: #181818;
-      --accent: #7A3E9D;
-      --text-primary: #ECECEC;
-      --text-secondary: #A0A0A0;
-    }
-    body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); }
-    .card-bg { background: var(--bg-secondary); border: 1px solid #2a2a2a; }
-    .input-field { background: #2a2a2a; color: var(--text-primary); border: 1px solid #4a4a4a; transition: .2s; }
-    .input-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(122,62,157,.5); }
-    .btn-primary { background: var(--accent); color: var(--text-primary); }
-    .btn-primary:hover { opacity: .9; }
-    .btn-secondary { background: #3a3a3a; color: var(--text-primary); }
-    .btn-secondary:hover { background: #4a4a4a; }
-    .btn-danger { background: #9d3e3e; color: var(--text-primary); }
-    .btn-danger:hover { background: #b94e4e; }
-    .chat-textarea { font-family: 'Source Code Pro', monospace; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid #2a2a2a; caret-color: var(--accent); resize: none; }
-    .chat-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(122,62,157,.5); }
-    .chat-textarea-readonly { background: #111; color: #a0a0a0; }
-    .status-dot { width:10px; height:10px; border-radius:50%; margin-right:8px; transition: background-color .3s; }
+    :root { --bg-primary:#0C0C0C; --bg-secondary:#181818; --accent:#7A3E9D; --text-primary:#ECECEC; --text-secondary:#A0A0A0; }
+    body { font-family:'Inter',sans-serif; background:var(--bg-primary); color:var(--text-primary); }
+    .card-bg { background:var(--bg-secondary); border:1px solid #2a2a2a; }
+    .input-field { background:#2a2a2a; color:var(--text-primary); border:1px solid #4a4a4a; transition:.2s; }
+    .input-field:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(122,62,157,.5); }
+    .btn-primary { background:var(--accent); color:var(--text-primary); }
+    .btn-primary:hover { opacity:.9; }
+    .btn-secondary { background:#3a3a3a; color:var(--text-primary); }
+    .btn-secondary:hover { background:#4a4a4a; }
+    .btn-danger { background:#9d3e3e; color:var(--text-primary); }
+    .btn-danger:hover { background:#b94e4e; }
+    .chat-textarea { font-family:'Source Code Pro',monospace; background:var(--bg-secondary); color:var(--text-primary); border:1px solid #2a2a2a; caret-color:var(--accent); resize:none; }
+    .chat-textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(122,62,157,.5); }
+    .chat-textarea-readonly { background:#111; color:#a0a0a0; }
+    .status-dot { width:10px; height:10px; border-radius:50%; margin-right:8px; transition:background-color .3s; }
     .status-online { background:#34D399; }
     .status-offline { background:#6B7280; }
+    .disabled { opacity:.6; pointer-events:none; }
   </style>
 </head>
 <body class="h-full min-h-screen p-4">
   <div id="app-container" class="w-full max-w-4xl mx-auto">
-
-    <!-- Loading -->
     <div id="loading-screen" class="flex flex-col items-center justify-center h-[60vh]">
       <svg class="animate-spin h-10 w-10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <path class="opacity-75" fill="currentColor" d="M4 12a 8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
       <p class="mt-4 text-lg text-[var(--text-secondary)]">Connecting…</p>
     </div>
 
-    <!-- Auth -->
     <div id="auth-screen" class="hidden w-full max-w-md mx-auto">
       <div class="card-bg p-8 rounded-lg shadow-2xl">
         <h2 class="text-3xl font-bold text-center mb-6">Veil</h2>
@@ -83,7 +75,6 @@
       </div>
     </div>
 
-    <!-- Dashboard -->
     <div id="dashboard-screen" class="hidden w-full max-w-lg mx-auto">
       <div class="card-bg p-8 rounded-lg shadow-2xl">
         <div class="flex justify-between items-center mb-6">
@@ -94,7 +85,7 @@
           <label class="block text-sm text-[var(--text-secondary)]">Search for a user to chat with</label>
           <div class="flex gap-2">
             <input id="search-username" class="input-field w-full p-3 rounded-md" placeholder="Exact username…" />
-            <button id="search-btn" class="btn-primary px-5 py-3 rounded-md font-semibold">Search</button>
+            <button id="search-btn" class="btn-primary px-5 py-3 rounded-md font-semibold disabled" disabled>Search</button>
           </div>
           <div id="search-results" class="mt-2"></div>
         </div>
@@ -105,7 +96,6 @@
       </div>
     </div>
 
-    <!-- Chat -->
     <div id="chat-screen" class="hidden h-[80vh] flex flex-col">
       <div class="flex justify-between items-center mb-3">
         <div>
@@ -136,7 +126,7 @@
   </div>
 
   <script type="module">
-    // DEBUG MODE — verbose logs
+    // DEBUG LOGGER
     const log = (...a)=>{ try{ console.log('[VEIL]',...a);}catch{} };
     const warn = (...a)=>{ try{ console.warn('[VEIL]',...a);}catch{} };
     const err = (...a)=>{ try{ console.error('[VEIL]',...a);}catch{} };
@@ -147,10 +137,9 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs, deleteDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    // Realtime DB is optional — we will guard it
     import { getDatabase, ref as rtdbRef, onDisconnect, onValue, set as rtdbSet, remove as rtdbRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-    // --- CONFIG ---
+    // CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyAO6sKjbBKdWm3MXggc-Iliywxh7CwSKok",
       authDomain: "capsc-d160e.firebaseapp.com",
@@ -163,15 +152,13 @@
     };
 
     const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'veil-app';
-    const AUTO_DELETE_MINUTES = 5; // change as needed
+    const AUTO_DELETE_MINUTES = 5;
 
-    let app, db, auth, rtdb, currentUser, currentRoomId;
+    let app, db, auth, rtdb, currentUser = null, currentRoomId = null;
     let unsubscribeRoom = ()=>{}; let unsubscribePresence = ()=>{};
-    let sharedKey = null; // CryptoKey (AES-GCM)
-    let myECDHKeyPair = null;
-    let typingTimeout = null;
+    let sharedKey = null; let myECDHKeyPair = null; let typingTimeout = null;
 
-    // DOM refs
+    // DOM
     const loadingScreen = document.getElementById('loading-screen');
     const authScreen = document.getElementById('auth-screen');
     const dashboardScreen = document.getElementById('dashboard-screen');
@@ -199,65 +186,161 @@
     const typingIndicator = document.getElementById('typing-indicator');
 
     // UI helpers
-    function showAuthScreen(){ loadingScreen.classList.add('hidden'); authScreen.classList.remove('hidden'); dashboardScreen.classList.add('hidden'); chatScreen.classList.add('hidden'); log('UI => Auth'); }
-    function showDashboard(){ loadingScreen.classList.add('hidden'); authScreen.classList.add('hidden'); dashboardScreen.classList.remove('hidden'); chatScreen.classList.add('hidden'); displayRecentChats(); log('UI => Dashboard'); }
-    function showChatScreen(username, recipient){ loadingScreen.classList.add('hidden'); authScreen.classList.add('hidden'); dashboardScreen.classList.add('hidden'); chatScreen.classList.remove('hidden'); userDisplay.textContent = username; recipientDisplay.textContent = recipient; myChatPad.value=''; theirChatPad.value=''; myChatPad.focus(); log('UI => Chat'); }
+    function showAuthScreen(){
+      loadingScreen.classList.add('hidden'); authScreen.classList.remove('hidden');
+      dashboardScreen.classList.add('hidden'); chatScreen.classList.add('hidden');
+      disableSearch(true);
+      log('UI => Auth');
+    }
+    function showDashboard(){
+      loadingScreen.classList.add('hidden'); authScreen.classList.add('hidden');
+      dashboardScreen.classList.remove('hidden'); chatScreen.classList.add('hidden');
+      displayRecentChats();
+      disableSearch(!currentUser);
+      log('UI => Dashboard');
+    }
+    function showChatScreen(username, recipient){
+      loadingScreen.classList.add('hidden'); authScreen.classList.add('hidden');
+      dashboardScreen.classList.add('hidden'); chatScreen.classList.remove('hidden');
+      userDisplay.textContent = username||''; recipientDisplay.textContent = recipient||'';
+      myChatPad.value=''; theirChatPad.value=''; myChatPad.focus();
+      log('UI => Chat');
+    }
+    function toggleAuthForms(){
+      const showingSignup = !signupForm.classList.contains('hidden');
+      if (showingSignup){ signupForm.classList.add('hidden'); loginForm.classList.remove('hidden'); authToggleText.textContent = "Don't have an account?"; authToggleLink.textContent = 'Sign Up'; }
+      else { loginForm.classList.add('hidden'); signupForm.classList.remove('hidden'); authToggleText.textContent = 'Already have an account?'; authToggleLink.textContent = 'Log In'; }
+    }
+    function disableSearch(disabled){
+      try{
+        if (disabled){ searchBtn.setAttribute('disabled','true'); searchBtn.classList.add('disabled'); }
+        else { searchBtn.removeAttribute('disabled'); searchBtn.classList.remove('disabled'); }
+      }catch{}
+    }
 
-    function toggleAuthForms(){ const showingSignup = !signupForm.classList.contains('hidden'); if (showingSignup){ signupForm.classList.add('hidden'); loginForm.classList.remove('hidden'); authToggleText.textContent = "Don't have an account?"; authToggleLink.textContent = 'Sign Up'; } else { loginForm.classList.add('hidden'); signupForm.classList.remove('hidden'); authToggleText.textContent = 'Already have an account?'; authToggleLink.textContent = 'Log In'; } }
-
-    // Boot
+    // INIT
     (async function init(){
       log('Init start');
       try {
         app = initializeApp(firebaseConfig); log('Firebase app initialized');
         db = getFirestore(app); log('Firestore ready');
-        // Try RTDB, but don't die if not enabled
-        try { rtdb = getDatabase(app); log('Realtime DB ready'); } catch(e){ warn('Realtime DB not ready (continuing without presence):', e); rtdb = null; }
+        try { rtdb = getDatabase(app); log('Realtime DB ready'); } catch(e){ warn('Realtime DB not ready, presence disabled', e); rtdb = null; }
         auth = getAuth(app); log('Auth ready');
-      } catch(e){ err('Firebase init failed:', e); showAuthScreen(); return; }
+      } catch(e){ err('Firebase init failed', e); showAuthScreen(); return; }
 
-      // Safety hatch: if auth never fires, show auth anyway after 3s
-      const authTimeout = setTimeout(()=>{ warn('Auth state took too long; showing Auth'); showAuthScreen(); }, 3000);
-
+      const authTimeout = setTimeout(()=>{ warn('Auth took long; forcing Auth UI'); showAuthScreen(); }, 3000);
       onAuthStateChanged(auth, async (user) => {
         clearTimeout(authTimeout);
         log('Auth state changed:', !!user);
-        if (user) { try{ await loadUserData(user.uid); showDashboard(); } catch(e){ err('loadUserData failed:', e); showAuthScreen(); } }
-        else { currentUser = null; showAuthScreen(); }
+        if (user) {
+          try{
+            await loadUserData(user.uid);
+            // enable search only after currentUser exists
+            disableSearch(false);
+            showDashboard();
+          } catch(e){ err('loadUserData failed:', e); showAuthScreen(); }
+        } else {
+          currentUser = null; disableSearch(true); showAuthScreen();
+        }
       });
 
       setupEventListeners();
     })();
 
-    // Users
+    // USERS
     async function loadUserData(uid){
       log('loadUserData', uid);
       const userRef = doc(db, `/artifacts/${APP_ID}/public/data/users`, uid);
       const snap = await getDoc(userRef);
-      if (snap.exists()){ currentUser = { uid, ...snap.data() }; dashUsername.textContent = currentUser.username; log('User loaded', currentUser.username); }
-      else { warn('No user profile, signing out'); await signOut(auth); }
+      if (snap.exists()){
+        currentUser = { uid, ...snap.data() };
+        dashUsername.textContent = currentUser.username||'';
+        log('User loaded', currentUser.username);
+      } else {
+        warn('No user profile, signing out'); await signOut(auth);
+      }
     }
 
-    async function handleSignup(e){ e.preventDefault(); signupError.textContent=''; const username = document.getElementById('signup-username').value.trim(); const password = document.getElementById('signup-password').value.trim(); if (username.length < 3) { signupError.textContent = 'Username must be at least 3 characters.'; return; } const q = query(collection(db, `/artifacts/${APP_ID}/public/data/users`), where('username','==',username)); const qSnap = await getDocs(q); if (!qSnap.empty){ signupError.textContent = 'Username is taken.'; return; } try{ const cred = await createUserWithEmailAndPassword(auth, `${username}@e2ee-chat.app`, password); await setDoc(doc(db, `/artifacts/${APP_ID}/public/data/users`, cred.user.uid), { uid: cred.user.uid, username }); log('Signup OK'); }catch(e){ err('Signup error', e); signupError.textContent = (e.message||'Error').replace('Firebase: ',''); } }
+    // AUTH handlers
+    async function handleSignup(e){
+      e.preventDefault(); signupError.textContent='';
+      const username = document.getElementById('signup-username').value.trim();
+      const password = document.getElementById('signup-password').value.trim();
+      if (username.length < 3) { signupError.textContent = 'Username must be at least 3 characters.'; return; }
+      const q = query(collection(db, `/artifacts/${APP_ID}/public/data/users`), where('username','==',username));
+      const qSnap = await getDocs(q); if (!qSnap.empty){ signupError.textContent = 'Username is taken.'; return; }
+      try{
+        const cred = await createUserWithEmailAndPassword(auth, `${username}@e2ee-chat.app`, password);
+        await setDoc(doc(db, `/artifacts/${APP_ID}/public/data/users`, cred.user.uid), { uid: cred.user.uid, username });
+        log('Signup OK');
+      }catch(e){ err('Signup error', e); signupError.textContent = (e.message||'Error').replace('Firebase: ',''); }
+    }
 
-    async function handleLogin(e){ e.preventDefault(); loginError.textContent=''; const username = document.getElementById('login-username').value.trim(); const password = document.getElementById('login-password').value.trim(); try{ await signInWithEmailAndPassword(auth, `${username}@e2ee-chat.app`, password); log('Login OK'); } catch(e){ err('Login error', e); loginError.textContent = 'Invalid username or password.'; } }
+    async function handleLogin(e){
+      e.preventDefault(); loginError.textContent='';
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value.trim();
+      try{ await signInWithEmailAndPassword(auth, `${username}@e2ee-chat.app`, password); log('Login OK'); }
+      catch(e){ err('Login error', e); loginError.textContent = 'Invalid username or password.'; }
+    }
 
-    // Recents / Search
+    // SAFETY: ensure currentUser exists before any action that uses it
+    function requireCurrentUser(context){
+      if (!currentUser){
+        warn(`Blocked ${context}: no currentUser yet`);
+        alert('Please log in again.');
+        showAuthScreen();
+        return false;
+      }
+      return true;
+    }
+
+    // SEARCH / RECENTS
     function getRecentChats(){ try{ return JSON.parse(localStorage.getItem('recentChats')||'[]'); }catch{return []} }
-    function saveRecentChat(u){ let chats = getRecentChats().filter(c=>c.uid!==u.uid); chats.unshift({uid:u.uid, username:u.username}); chats = chats.slice(0,5); localStorage.setItem('recentChats', JSON.stringify(chats)); }
-    function displayRecentChats(){ const list = getRecentChats(); if(!list.length){ recentChatsList.textContent='No recent chats.'; return; } recentChatsList.innerHTML=''; list.forEach(c=>{ const div=document.createElement('div'); div.className='flex justify-between items-center bg-[#2a2a2a] p-3 rounded-lg'; div.innerHTML=`<span class="font-medium">${c.username}</span><button class="btn-primary px-4 py-2 rounded-md text-sm">Chat</button>`; div.querySelector('button').addEventListener('click',()=>startChatByUid(c.uid,c.username)); recentChatsList.appendChild(div); }); }
+    function saveRecentChat(u){ try{ let chats = getRecentChats().filter(c=>c.uid!==u.uid); chats.unshift({uid:u.uid, username:u.username}); chats = chats.slice(0,5); localStorage.setItem('recentChats', JSON.stringify(chats)); }catch(e){ warn('saveRecentChat failed', e);} }
+    function displayRecentChats(){
+      try{
+        const list = getRecentChats();
+        if(!list.length){ recentChatsList.textContent='No recent chats.'; return; }
+        recentChatsList.innerHTML='';
+        list.forEach(c=>{
+          const div=document.createElement('div');
+          div.className='flex justify-between items-center bg-[#2a2a2a] p-3 rounded-lg';
+          div.innerHTML=`<span class="font-medium">${c.username}</span><button class="btn-primary px-4 py-2 rounded-md text-sm">Chat</button>`;
+          div.querySelector('button').addEventListener('click',()=>startChatByUid(c.uid,c.username));
+          recentChatsList.appendChild(div);
+        });
+      }catch(e){ warn('displayRecentChats failed', e); }
+    }
 
-    async function handleSearch(){ const uname = searchInput.value.trim(); searchResults.innerHTML=''; if(!uname) return; if (uname === currentUser.username){ searchResults.innerHTML = `<p class='text-yellow-400'>You can't chat with yourself.</p>`; return; } const q = query(collection(db, `/artifacts/${APP_ID}/public/data/users`), where('username','==',uname)); const snap = await getDocs(q); if (snap.empty){ searchResults.innerHTML = `<p class='text-red-400'>User not found.</p>`; } else { const r = snap.docs[0].data(); searchResults.innerHTML = `<div class='flex justify-between items-center bg-[#2a2a2a] p-3 rounded-lg'><span class='font-medium'>${r.username}</span><button id='start-chat-btn' class='btn-primary px-4 py-2 rounded-md'>Chat</button></div>`; document.getElementById('start-chat-btn').addEventListener('click',()=>startChatByUid(r.uid, r.username)); } }
+    async function handleSearch(){
+      searchResults.innerHTML='';
+      if (!requireCurrentUser('search')) return;
+      const uname = (searchInput.value||'').trim();
+      if(!uname) return;
+      if (currentUser && uname === currentUser.username){ searchResults.innerHTML = `<p class='text-yellow-400'>You can't chat with yourself.</p>`; return; }
+      const q = query(collection(db, `/artifacts/${APP_ID}/public/data/users`), where('username','==',uname));
+      const snap = await getDocs(q);
+      if (snap.empty){ searchResults.innerHTML = `<p class='text-red-400'>User not found.</p>`; }
+      else {
+        const r = snap.docs[0].data();
+        searchResults.innerHTML = `<div class='flex justify-between items-center bg-[#2a2a2a] p-3 rounded-lg'><span class='font-medium'>${r.username}</span><button id='start-chat-btn' class='btn-primary px-4 py-2 rounded-md'>Chat</button></div>`;
+        document.getElementById('start-chat-btn').addEventListener('click',()=>startChatByUid(r.uid, r.username));
+      }
+    }
 
-    function roomIdFor(userA, userB){ return [userA, userB].sort().join('-'); }
+    function roomIdFor(userA, userB){ return [userA||'', userB||''].sort().join('-'); }
 
     async function startChatByUid(recipientUid, recipientUsername){
+      if (!requireCurrentUser('startChat')) return;
+      if (!recipientUid || !recipientUsername){ warn('startChatByUid missing recipient'); return; }
       log('Start chat with', recipientUsername);
       const usernames = [currentUser.username, recipientUsername].sort();
       currentRoomId = roomIdFor(currentUser.username, recipientUsername);
       await initRoomIfMissing(currentRoomId, usernames, [currentUser.uid, recipientUid]);
       saveRecentChat({uid: recipientUid, username: recipientUsername});
-      try { await setupCrypto(currentRoomId, recipientUid); } catch(e){ err('Crypto setup failed', e); alert('Crypto not available in this context. Use HTTPS.'); return; }
+      try { await setupCrypto(currentRoomId, recipientUid); }
+      catch(e){ err('Crypto setup failed', e); alert('Secure crypto not available here (needs HTTPS).'); return; }
       listenToRoom(currentRoomId, recipientUid);
       setupPresence(currentRoomId);
       showChatScreen(currentUser.username, recipientUsername);
@@ -268,68 +351,115 @@
       const roomSnap = await getDoc(roomRef);
       if (!roomSnap.exists()){
         log('Creating room', roomId);
-        await setDoc(roomRef, {
-          participants: uids,
-          usernames,
-          createdAt: serverTimestamp(),
-          expiresAt: new Date(Date.now()+AUTO_DELETE_MINUTES*60*1000),
-          keys: {}, pads: {}, typing: {}, lastActive: serverTimestamp()
-        });
+        await setDoc(roomRef, { participants: uids, usernames, createdAt: serverTimestamp(), expiresAt: new Date(Date.now()+AUTO_DELETE_MINUTES*60*1000), keys:{}, pads:{}, typing:{}, lastActive: serverTimestamp() });
       } else { log('Room exists'); }
     }
 
-    // Crypto
+    // CRYPTO
     async function setupCrypto(roomId, recipientUid){
-      if (!
+      if (!window.isSecureContext){ throw new Error('Insecure context — crypto.subtle requires HTTPS'); }
+      if (!requireCurrentUser('setupCrypto')) throw new Error('No currentUser');
+      myECDHKeyPair = await loadOrCreateECDH();
+      const myPubJwk = await crypto.subtle.exportKey('jwk', myECDHKeyPair.publicKey);
+      const roomRef = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, roomId);
+      await updateDoc(roomRef, { [`keys.${currentUser.uid}`]: myPubJwk, lastActive: serverTimestamp(), expiresAt: new Date(Date.now()+AUTO_DELETE_MINUTES*60*1000) });
+      log('Published my public key');
+      const otherJwk = await waitForOtherKey(roomRef, recipientUid);
+      log('Got other public key');
+      const otherPubKey = await crypto.subtle.importKey('jwk', otherJwk, { name: 'ECDH', namedCurve: 'P-256' }, true, []);
+      sharedKey = await crypto.subtle.deriveKey({ name: 'ECDH', public: otherPubKey }, myECDHKeyPair.privateKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt','decrypt']);
+      log('Shared key derived');
+    }
+
+    function waitForOtherKey(roomRef, otherUid){
+      return new Promise((resolve, reject)=>{
+        const t = setTimeout(()=>{ unsubscribe(); reject(new Error('Timed out waiting for peer key')); }, 15000);
+        const unsubscribe = onSnapshot(roomRef, (s)=>{ const data = s.data(); if (data?.keys && data.keys[otherUid]){ clearTimeout(t); unsubscribe(); resolve(data.keys[otherUid]); } }, (e)=>{ clearTimeout(t); reject(e); });
+      });
+    }
+
+    async function loadOrCreateECDH(){
+      const existing = localStorage.getItem('veil_ecdh_key');
+      if (existing){
+        try { const { pub, priv } = JSON.parse(existing); const publicKey = await crypto.subtle.importKey('jwk', pub, {name:'ECDH', namedCurve:'P-256'}, true, []); const privateKey = await crypto.subtle.importKey('jwk', priv, {name:'ECDH', namedCurve:'P-256'}, false, ['deriveKey']); log('Loaded ECDH from storage'); return { publicKey, privateKey }; } catch(e){ warn('Stored ECDH invalid, regenerating', e); }
+      }
+      const kp = await crypto.subtle.generateKey({name:'ECDH', namedCurve:'P-256'}, true, ['deriveKey']);
+      const pub = await crypto.subtle.exportKey('jwk', kp.publicKey);
+      const priv = await crypto.subtle.exportKey('jwk', kp.privateKey);
+      localStorage.setItem('veil_ecdh_key', JSON.stringify({ pub, priv }));
+      log('Generated new ECDH keypair');
+      return kp;
+    }
+
+    async function encryptPad(text){ if (!sharedKey) return null; const enc = new TextEncoder().encode(text); const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, sharedKey, enc); return { c: b64(new Uint8Array(ct)), iv: b64(iv), ts: Date.now() }; }
+    async function decryptPad(payload){ if (!sharedKey || !payload?.c || !payload?.iv) return ''; try{ const ct = fromB64(payload.c); const iv = fromB64(payload.iv); const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, sharedKey, ct); return new TextDecoder().decode(pt); }catch(e){ warn('Decrypt failed', e); return ''; } }
+    function b64(arr){ return btoa(String.fromCharCode(...arr)); }
+    function fromB64(str){ return Uint8Array.from(atob(str), c=>c.charCodeAt(0)); }
+
+    // SYNC
+    async function updateFirestoreContent(content){
+      if (!currentRoomId) return; if (!sharedKey){ warn('No sharedKey yet; skipping update'); return; }
+      if (!requireCurrentUser('updatePad')) return;
+      const roomRef = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, currentRoomId);
+      const encrypted = await encryptPad(content); if (!encrypted){ warn('encrypt returned null'); return; }
+      try { await setDoc(roomRef, { [`pads.${currentUser.uid}`]: encrypted, [`typing.${currentUser.uid}`]: content.length>0, lastActive: serverTimestamp(), expiresAt: new Date(Date.now()+AUTO_DELETE_MINUTES*60*1000) }, { merge: true }); }
+      catch(e){ err('updateFirestoreContent failed', e); }
+      if (typingTimeout) clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(async ()=>{ try{ await setDoc(roomRef, { [`typing.${currentUser.uid}`]: false, lastActive: serverTimestamp() }, { merge: true }); }catch(e){ warn('typing false set failed', e);} }, 1200);
+    }
+
+    function listenToRoom(roomId, recipientUid){
+      const roomRef = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, roomId);
+      unsubscribeRoom = onSnapshot(roomRef, async (snap)=>{
+        if (!snap.exists()) { warn('Room doc missing'); return; }
+        const data = snap.data();
+        const isTyping = !!data?.typing?.[recipientUid]; typingIndicator.classList.toggle('hidden', !isTyping);
+        const payload = data?.pads?.[recipientUid];
+        if (payload){ const text = await decryptPad(payload); if (theirChatPad.value !== text){ theirChatPad.value = text; } }
+      }, (e)=>{ err('listenToRoom error', e); });
+    }
+
+    // PRESENCE (optional)
+    function setupPresence(roomId){
+      if (!rtdb){ warn('Presence disabled (no RTDB)'); return; }
+      if (!requireCurrentUser('presence')) return;
+      const meRef = rtdbRef(rtdb, `presence/${APP_ID}/${roomId}/${currentUser.uid}`);
+      const connRef = rtdbRef(rtdb, '.info/connected');
+      onValue(connRef, async (snap)=>{ if (snap.val() === true){ try{ await rtdbSet(meRef, { online: true, at: Date.now() }); onDisconnect(meRef).remove(); log('Presence set online'); } catch(e){ warn('Presence set failed', e); } } });
+      const roomPresenceRef = rtdbRef(rtdb, `presence/${APP_ID}/${roomId}`);
+      unsubscribePresence = onValue(roomPresenceRef, (s)=>{ const val = s.val()||{}; const others = Object.entries(val).filter(([uid])=>uid!==currentUser.uid); const anyOnline = others.some(([_,v])=>v?.online); onlineStatusDot.classList.toggle('status-online', anyOnline); onlineStatusDot.classList.toggle('status-offline', !anyOnline); onlineStatusText.textContent = anyOnline? 'Online':'Offline'; });
+    }
+
+    // LEAVE / CLEAR
+    async function handleLeave(){
+      try{ if (rtdb && currentRoomId && currentUser){ await rtdbRemove(rtdbRef(rtdb, `presence/${APP_ID}/${currentRoomId}/${currentUser.uid}`)); } }catch{}
+      try{ unsubscribeRoom&&unsubscribeRoom(); unsubscribePresence&&unsubscribePresence(); }catch{}
+      try{ if (currentRoomId){ await updateDoc(doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, currentRoomId), { expiresAt: new Date(Date.now()+60*1000) }); } } catch(e){ warn('Leave update failed', e); }
+      currentRoomId = null; showDashboard();
+    }
+    async function handleClear(){ myChatPad.value=''; await updateFirestoreContent(''); }
+
+    // EVENTS
+    function setupEventListeners(){
+      signupForm.addEventListener('submit', handleSignup);
+      loginForm.addEventListener('submit', handleLogin);
+      authToggleLink.addEventListener('click', (e)=>{ e.preventDefault(); toggleAuthForms(); });
+      logoutBtn.addEventListener('click', ()=>signOut(auth));
+      searchBtn.addEventListener('click', handleSearch);
+      searchInput.addEventListener('keyup', (e)=> e.key==='Enter' && handleSearch());
+      clearBtn.addEventListener('click', handleClear);
+      leaveBtn.addEventListener('click', handleLeave);
+      myChatPad.addEventListener('input', ()=> updateFirestoreContent(myChatPad.value));
+    }
+
+    // SMOKE TESTS (run once in console)
+    ;(function smoke(){
+      try{
+        log('SMOKE: no crash when displayRecentChats() with currentUser=null');
+        const prev = currentUser; currentUser = null; displayRecentChats(); currentUser = prev;
+        log('SMOKE: OK');
+      }catch(e){ err('SMOKE failed', e); }
+    })();
+  </script>
 </body>
 </html>
-
-<!--
-FIRESTORE SECURITY RULES (add in Firestore -> Rules)
------------------------------------------------
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function isSignedIn() { return request.auth != null; }
-    function isParticipant(room) {
-      return room.data.participants.hasAny([request.auth.uid])
-        || (room.data.participants.size() > 0 && room.data.participants[0] == request.auth.uid)
-        || (room.data.participants.size() > 1 && room.data.participants[1] == request.auth.uid);
-    }
-
-    match /artifacts/{app}/public/data {
-      match /users/{uid} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn() && request.auth.uid == uid;
-      }
-      match /e2ee-chat/{roomId} {
-        allow read, update, delete: if isSignedIn() && isParticipant(resource);
-        allow create: if isSignedIn();
-      }
-    }
-  }
-}
-
-REALTIME DATABASE RULES (Presence)
-----------------------------------
-{
-  "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null"
-  }
-}
-
-TTL AUTO-DELETE (Console setup required)
-----------------------------------------
-1) Firestore -> Settings -> TTL -> Enable TTL on field `expiresAt` for collection path `artifacts/veil-app/public/data/e2ee-chat`.
-2) This file keeps bumping `expiresAt` on activity, and shortens it on Leave(), so rooms vanish automatically.
-3) Note: Old backups may persist per Google's retention; for stricter privacy, prefer a WebRTC-only approach.
-
-NOTES
------
-- All pad content is encrypted client-side (AES-GCM 256). Firestore only stores ciphertext.
-- Shared key is derived via ECDH (P-256). Public keys published per user inside the room doc.
-- Presence uses Realtime Database with onDisconnect for reliability.
-- Typing indicator is lightweight via `typing.{uid}` boolean; pad sync remains full text for simplicity.
-- This is still a Firestore-based transport; for ZERO storage, switch to WebRTC data channels.
--->
