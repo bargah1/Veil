@@ -1,700 +1,335 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Veil</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap');
-        
-        /* Color Theme */
-        :root {
-            --bg-primary: #0C0C0C; /* Jet black */
-            --bg-secondary: #181818; /* Matte dark gray */
-            --accent: #7A3E9D; /* Dark violet glow */
-            --text-primary: #ECECEC; /* Off-white */
-            --text-secondary: #a0a0a0; /* Lighter gray */
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            overflow: hidden;
-        }
-
-        .card-bg {
-            background-color: var(--bg-secondary);
-            border: 1px solid #2a2a2a;
-        }
-
-        .input-field {
-            font-family: 'Inter', sans-serif;
-            background-color: #2a2a2a;
-            color: var(--text-primary);
-            border: 1px solid #4a4a4a;
-            transition: all 0.2s ease-in-out;
-        }
-        
-        .input-field:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(122, 62, 157, 0.5);
-        }
-        
-        .btn {
-            transition: all 0.2s ease-in-out;
-        }
-        
-        .btn-primary {
-            background-color: var(--accent);
-            color: var(--text-primary);
-        }
-        .btn-primary:hover {
-            opacity: 0.85;
-        }
-        
-        .btn-secondary {
-            background-color: #3a3a3a;
-            color: var(--text-primary);
-        }
-        .btn-secondary:hover {
-            background-color: #4a4a4a;
-        }
-
-        .btn-danger {
-            background-color: #9d3e3e; /* Dark red */
-            color: var(--text-primary);
-        }
-        .btn-danger:hover {
-            background-color: #b94e4e;
-        }
-
-        .chat-textarea {
-            font-family: 'Source Code Pro', monospace;
-            background-color: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 1px solid #2a2a2a;
-            caret-color: var(--accent);
-            transition: all 0.1s ease-in-out;
-            resize: none;
-        }
-
-        .chat-textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(122, 62, 157, 0.5);
-        }
-
-        .chat-textarea-readonly {
-            background-color: #111; /* Slightly darker than secondary */
-            color: #a0a0a0;
-        }
-
-        /* Status Dot */
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 8px;
-            transition: background-color 0.3s ease;
-        }
-        .status-online { background-color: #34D399; } /* Emerald-400 */
-        .status-offline { background-color: #6B7280; } /* Gray-500 */
-
-        /* Recent Chat Item */
-        .recent-chat-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            border-radius: 8px;
-            background-color: #2a2a2a;
-            transition: background-color 0.2s ease;
-        }
-        .recent-chat-item:hover {
-            background-color: #3a3a3a;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Veil — E2EE (Firestore)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap');
+    :root {
+      --bg-primary: #0C0C0C;
+      --bg-secondary: #181818;
+      --accent: #7A3E9D;
+      --text-primary: #ECECEC;
+      --text-secondary: #A0A0A0;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); }
+    .card-bg { background: var(--bg-secondary); border: 1px solid #2a2a2a; }
+    .input-field { background: #2a2a2a; color: var(--text-primary); border: 1px solid #4a4a4a; transition: .2s; }
+    .input-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(122,62,157,.5); }
+    .btn-primary { background: var(--accent); color: var(--text-primary); }
+    .btn-primary:hover { opacity: .9; }
+    .btn-secondary { background: #3a3a3a; color: var(--text-primary); }
+    .btn-secondary:hover { background: #4a4a4a; }
+    .btn-danger { background: #9d3e3e; color: var(--text-primary); }
+    .btn-danger:hover { background: #b94e4e; }
+    .chat-textarea { font-family: 'Source Code Pro', monospace; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid #2a2a2a; caret-color: var(--accent); resize: none; }
+    .chat-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(122,62,157,.5); }
+    .chat-textarea-readonly { background: #111; color: #a0a0a0; }
+    .status-dot { width:10px; height:10px; border-radius:50%; margin-right:8px; transition: background-color .3s; }
+    .status-online { background:#34D399; }
+    .status-offline { background:#6B7280; }
+  </style>
 </head>
-<body class="h-full flex items-center justify-center p-4">
+<body class="h-full min-h-screen p-4">
+  <div id="app-container" class="w-full max-w-4xl mx-auto">
 
-    <div id="app-container" class="w-full max-w-4xl mx-auto">
-        
-        <!-- Loading Screen -->
-        <div id="loading-screen" class.list="flex flex-col items-center justify-center h-full">
-            <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="mt-4 text-lg text-text-secondary">Connecting to Veil...</p>
-        </div>
-
-        <!-- Login/Signup Screen -->
-        <div id="auth-screen" class="hidden w-full max-w-md mx-auto">
-            <div class="card-bg p-8 rounded-lg shadow-2xl">
-                <h2 class="text-3xl font-bold text-center text-white mb-8">Veil</h2>
-                
-                <!-- Sign Up Form -->
-                <form id="signup-form" class="space-y-4">
-                    <h3 class="text-xl font-semibold text-white">Create an Account</h3>
-                    <div>
-                        <label for="signup-username" class="block text-sm font-medium text-text-secondary">Username</label>
-                        <input type="text" id="signup-username" class="input-field w-full p-3 mt-1 rounded-md" required>
-                    </div>
-                    <div>
-                        <label for="signup-password" class="block text-sm font-medium text-text-secondary">Password</label>
-                        <input type="password" id="signup-password" class="input-field w-full p-3 mt-1 rounded-md" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-full py-3 rounded-md font-semibold">Sign Up</button>
-                    <p id="signup-error" class="text-red-400 text-sm text-center"></p>
-                </form>
-
-                <!-- Login Form (Initially hidden) -->
-                <form id="login-form" class="hidden space-y-4">
-                    <h3 class="text-xl font-semibold text-white">Log In</h3>
-                    <div>
-                        <label for="login-username" class="block text-sm font-medium text-text-secondary">Username</label>
-                        <input type="text" id="login-username" class="input-field w-full p-3 mt-1 rounded-md" required>
-                    </div>
-                    <div>
-                        <label for="login-password" class="block text-sm font-medium text-text-secondary">Password</label>
-                        <input type="password" id="login-password" class="input-field w-full p-3 mt-1 rounded-md" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-full py-3 rounded-md font-semibold">Log In</button>
-                    <p id="login-error" class="text-red-400 text-sm text-center"></p>
-                </form>
-
-                <p class="text-center text-sm text-text-secondary mt-6">
-                    <span id="auth-toggle-text">Already have an account?</span>
-                    <a href="#" id="auth-toggle-link" class="font-medium text-accent hover:underline">Log In</a>
-                </p>
-            </div>
-        </div>
-
-        <!-- Dashboard Screen -->
-        <div id="dashboard-screen" class="hidden w-full max-w-lg mx-auto">
-            <div class="card-bg p-8 rounded-lg shadow-2xl">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-white">Welcome, <span id="dash-username" class="text-accent"></span></h2>
-                    <button id="logout-btn" class="btn btn-secondary px-4 py-2 rounded-md font-semibold">Logout</button>
-                </div>
-
-                <!-- Removed Unique Code Section -->
-
-                <div class="space-y-4">
-                    <label for="search-username" class="block text-sm font-medium text-text-secondary">Search for a user to chat with</label>
-                    <div class="flex space-x-2">
-                        <input type="text" id="search-username" class="input-field w-full p-3 rounded-md" placeholder="Enter exact username...">
-                        <button id="search-btn" class="btn btn-primary px-5 py-3 rounded-md font-semibold">Search</button>
-                    </div>
-                    <div id="search-results" class="mt-4"></div>
-                </div>
-
-                <!-- Recent Chats -->
-                <div class="mt-8">
-                    <h3 class="text-xl font-semibold text-white mb-4">Recent Chats</h3>
-                    <div id="recent-chats-list" class="space-y-3">
-                        <p class="text-text-secondary">No recent chats.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Chat Screen (Two-Pad Layout) -->
-        <div id="chat-screen" class="hidden h-[80vh] flex flex-col">
-             <div class="flex justify-between items-center mb-4">
-                <div>
-                    <h2 class="text-xl font-bold text-white">Chat with <span id="recipient-display"></span></h2>
-                    <p class="text-sm text-text-secondary">You are <span id="user-display" class="text-accent"></span></p>
-                    <div id="online-status-container" class="flex items-center">
-                        <span id="online-status-dot" class="status-dot status-offline"></span>
-                        <span id="online-status-text" class="text-sm text-text-secondary">Offline</span>
-                    </div>
-                </div>
-                <div>
-                    <button id="clear-btn" class="btn btn-secondary px-4 py-2 rounded-md font-semibold mr-2">Clear My Pad</button>
-                    <button id="leave-btn" class="btn btn-danger px-4 py-2 rounded-md font-semibold">Leave</button>
-                </div>
-             </div>
-             
-             <!-- Two-Pad Layout -->
-             <div class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Your Pad -->
-                <div class="flex flex-col">
-                    <label for="my-chat-pad" class="text-sm font-medium text-text-secondary mb-2">Your Pad (Start typing...)</label>
-                    <textarea id="my-chat-pad" class="chat-textarea w-full flex-grow p-4 rounded-lg text-lg leading-7" spellcheck="false"></textarea>
-                </div>
-                
-                <!-- Their Pad -->
-                <div class="flex flex-col">
-                    <label for="their-chat-pad" class="text-sm font-medium text-text-secondary mb-2">Their Pad</label>
-                    <textarea id="their-chat-pad" class="chat-textarea chat-textarea-readonly w-full flex-grow p-4 rounded-lg text-lg leading-7" readonly></textarea>
-                </div>
-             </div>
-        </div>
-
+    <!-- Loading -->
+    <div id="loading-screen" class="flex flex-col items-center justify-center h-[60vh]">
+      <svg class="animate-spin h-10 w-10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <p class="mt-4 text-lg text-[var(--text-secondary)]">Connecting…</p>
     </div>
 
-    <!-- Removed Code Prompt Modal -->
+    <!-- Auth -->
+    <div id="auth-screen" class="hidden w-full max-w-md mx-auto">
+      <div class="card-bg p-8 rounded-lg shadow-2xl">
+        <h2 class="text-3xl font-bold text-center mb-6">Veil</h2>
+        <form id="signup-form" class="space-y-4">
+          <h3 class="text-xl font-semibold">Create an Account</h3>
+          <div>
+            <label class="block text-sm text-[var(--text-secondary)]">Username</label>
+            <input id="signup-username" class="input-field w-full p-3 mt-1 rounded-md" required />
+          </div>
+          <div>
+            <label class="block text-sm text-[var(--text-secondary)]">Password</label>
+            <input type="password" id="signup-password" class="input-field w-full p-3 mt-1 rounded-md" required />
+          </div>
+          <button class="btn-primary w-full py-3 rounded-md font-semibold" type="submit">Sign Up</button>
+          <p id="signup-error" class="text-red-400 text-sm text-center"></p>
+        </form>
 
-    <script type="module">
-        // --- Firebase Imports ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            createUserWithEmailAndPassword, 
-            signInWithEmailAndPassword, 
-            onAuthStateChanged, 
-            signOut 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            getDoc, 
-            setDoc, 
-            onSnapshot, 
-            collection, 
-            query, 
-            where, 
-            getDocs,
-            deleteDoc,
-            updateDoc
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        <form id="login-form" class="hidden space-y-4">
+          <h3 class="text-xl font-semibold">Log In</h3>
+          <div>
+            <label class="block text-sm text-[var(--text-secondary)]">Username</label>
+            <input id="login-username" class="input-field w-full p-3 mt-1 rounded-md" required />
+          </div>
+          <div>
+            <label class="block text-sm text-[var(--text-secondary)]">Password</label>
+            <input type="password" id="login-password" class="input-field w-full p-3 mt-1 rounded-md" required />
+          </div>
+          <button class="btn-primary w-full py-3 rounded-md font-semibold" type="submit">Log In</button>
+          <p id="login-error" class="text-red-400 text-sm text-center"></p>
+        </form>
 
-        // --- Firebase Config (Pasted from user) ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyAO6sKjbBKdWm3MXggc-Iliywxh7CwSKok",
-          authDomain: "capsc-d160e.firebaseapp.com",
-          projectId: "capsc-d160e",
-          storageBucket: "capsc-d160e.firebasestorage.app",
-          messagingSenderId: "1069210585933",
-          appId: "1:1069210585933:web:54f05cf195caeea8320504",
-          measurementId: "G-4957PFGHS2"
-        };
+        <p class="text-center text-sm text-[var(--text-secondary)] mt-6">
+          <span id="auth-toggle-text">Already have an account?</span>
+          <a href="#" id="auth-toggle-link" class="font-medium underline">Log In</a>
+        </p>
+      </div>
+    </div>
 
-        // --- App ID (for Firestore path) ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    <!-- Dashboard -->
+    <div id="dashboard-screen" class="hidden w-full max-w-lg mx-auto">
+      <div class="card-bg p-8 rounded-lg shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Welcome, <span id="dash-username" class="text-[var(--accent)]"></span></h2>
+          <button id="logout-btn" class="btn-secondary px-4 py-2 rounded-md font-semibold">Logout</button>
+        </div>
+        <div class="space-y-4">
+          <label class="block text-sm text-[var(--text-secondary)]">Search for a user to chat with</label>
+          <div class="flex gap-2">
+            <input id="search-username" class="input-field w-full p-3 rounded-md" placeholder="Exact username…" />
+            <button id="search-btn" class="btn-primary px-5 py-3 rounded-md font-semibold">Search</button>
+          </div>
+          <div id="search-results" class="mt-2"></div>
+        </div>
+        <div class="mt-8">
+          <h3 class="text-xl font-semibold mb-4">Recent Chats</h3>
+          <div id="recent-chats-list" class="space-y-3 text-[var(--text-secondary)]">No recent chats.</div>
+        </div>
+      </div>
+    </div>
 
-        // --- App State ---
-        let db, auth, currentUser, currentRoomId; // Removed cryptoKey
-        let unsubscribeRoom = () => {};
-        let unsubscribePresence = () => {};
-        let isUpdatingFromFirestore = false;
+    <!-- Chat -->
+    <div id="chat-screen" class="hidden h-[80vh] flex flex-col">
+      <div class="flex justify-between items-center mb-3">
+        <div>
+          <h2 class="text-xl font-bold">Chat with <span id="recipient-display"></span></h2>
+          <p class="text-sm text-[var(--text-secondary)]">You are <span id="user-display" class="text-[var(--accent)]"></span></p>
+          <div class="flex items-center gap-2">
+            <span id="online-status-dot" class="status-dot status-offline"></span>
+            <span id="online-status-text" class="text-sm text-[var(--text-secondary)]">Offline</span>
+            <span id="typing-indicator" class="text-sm text-[var(--text-secondary)] hidden">— typing…</span>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button id="clear-btn" class="btn-secondary px-4 py-2 rounded-md font-semibold">Clear My Pad</button>
+          <button id="leave-btn" class="btn-danger px-4 py-2 rounded-md font-semibold">Leave</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+        <div class="flex flex-col">
+          <label class="text-sm text-[var(--text-secondary)] mb-2">Your Pad</label>
+          <textarea id="my-chat-pad" class="chat-textarea w-full flex-1 p-4 rounded-lg text-lg leading-7" spellcheck="false"></textarea>
+        </div>
+        <div class="flex flex-col">
+          <label class="text-sm text-[var(--text-secondary)] mb-2">Their Pad</label>
+          <textarea id="their-chat-pad" class="chat-textarea chat-textarea-readonly w-full flex-1 p-4 rounded-lg text-lg leading-7" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        // --- DOM Elements ---
-        const loadingScreen = document.getElementById('loading-screen');
-        const authScreen = document.getElementById('auth-screen');
-        const dashboardScreen = document.getElementById('dashboard-screen');
-        const chatScreen = document.getElementById('chat-screen');
-        
-        // Auth
-        const signupForm = document.getElementById('signup-form');
-        const loginForm = document.getElementById('login-form');
-        const authToggleLink = document.getElementById('auth-toggle-link');
-        const authToggleText = document.getElementById('auth-toggle-text');
-        const signupError = document.getElementById('signup-error');
-        const loginError = document.getElementById('login-error');
-        
-        // Dashboard
-        const dashUsername = document.getElementById('dash-username');
-        // Removed dash-unique-code
-        const logoutBtn = document.getElementById('logout-btn');
-        const searchBtn = document.getElementById('search-btn');
-        const searchInput = document.getElementById('search-username');
-        const searchResults = document.getElementById('search-results');
-        const recentChatsList = document.getElementById('recent-chats-list');
-        
-        // Chat
-        const recipientDisplay = document.getElementById('recipient-display');
-        const userDisplay = document.getElementById('user-display');
-        const myChatPad = document.getElementById('my-chat-pad');
-        const theirChatPad = document.getElementById('their-chat-pad');
-        const clearBtn = document.getElementById('clear-btn');
-        const leaveBtn = document.getElementById('leave-btn');
-        const onlineStatusDot = document.getElementById('online-status-dot');
-        const onlineStatusText = document.getElementById('online-status-text');
-        
-        // Removed Modal Elements
+  <script type="module">
+    // DEBUG MODE — verbose logs
+    const log = (...a)=>{ try{ console.log('[VEIL]',...a);}catch{} };
+    const warn = (...a)=>{ try{ console.warn('[VEIL]',...a);}catch{} };
+    const err = (...a)=>{ try{ console.error('[VEIL]',...a);}catch{} };
 
+    log('Script tag entered');
 
-        // --- Init ---
-        async function init() {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
+    // Firebase v11
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs, deleteDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    // Realtime DB is optional — we will guard it
+    import { getDatabase, ref as rtdbRef, onDisconnect, onValue, set as rtdbSet, remove as rtdbRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-            // Auth state listener
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    // User is signed in
-                    await loadUserData(user.uid);
-                    showDashboard();
-                } else {
-                    // User is signed out
-                    currentUser = null;
-                    showAuthScreen();
-                }
-            });
+    // --- CONFIG ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAO6sKjbBKdWm3MXggc-Iliywxh7CwSKok",
+      authDomain: "capsc-d160e.firebaseapp.com",
+      projectId: "capsc-d160e",
+      storageBucket: "capsc-d160e.firebasestorage.app",
+      messagingSenderId: "1069210585933",
+      appId: "1:1069210585933:web:54f05cf195caeea8320504",
+      measurementId: "G-4957PFGHS2",
+      databaseURL: `https://capsc-d160e-default-rtdb.asia-southeast1.firebasedatabase.app`
+    };
 
-            setupEventListeners();
-        }
+    const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'veil-app';
+    const AUTO_DELETE_MINUTES = 5; // change as needed
 
-        // --- Auth & User Functions ---
+    let app, db, auth, rtdb, currentUser, currentRoomId;
+    let unsubscribeRoom = ()=>{}; let unsubscribePresence = ()=>{};
+    let sharedKey = null; // CryptoKey (AES-GCM)
+    let myECDHKeyPair = null;
+    let typingTimeout = null;
 
-        async function loadUserData(uid) {
-            const userRef = doc(db, `/artifacts/${appId}/public/data/users`, uid);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                currentUser = { uid, ...userSnap.data() };
-                dashUsername.textContent = currentUser.username;
-                // Removed unique code display
-            } else {
-                console.error("No user data found for logged-in user!");
-                await signOut(auth);
-            }
-        }
+    // DOM refs
+    const loadingScreen = document.getElementById('loading-screen');
+    const authScreen = document.getElementById('auth-screen');
+    const dashboardScreen = document.getElementById('dashboard-screen');
+    const chatScreen = document.getElementById('chat-screen');
+    const signupForm = document.getElementById('signup-form');
+    const loginForm = document.getElementById('login-form');
+    const authToggleLink = document.getElementById('auth-toggle-link');
+    const authToggleText = document.getElementById('auth-toggle-text');
+    const signupError = document.getElementById('signup-error');
+    const loginError = document.getElementById('login-error');
+    const dashUsername = document.getElementById('dash-username');
+    const logoutBtn = document.getElementById('logout-btn');
+    const searchBtn = document.getElementById('search-btn');
+    const searchInput = document.getElementById('search-username');
+    const searchResults = document.getElementById('search-results');
+    const recentChatsList = document.getElementById('recent-chats-list');
+    const recipientDisplay = document.getElementById('recipient-display');
+    const userDisplay = document.getElementById('user-display');
+    const myChatPad = document.getElementById('my-chat-pad');
+    const theirChatPad = document.getElementById('their-chat-pad');
+    const clearBtn = document.getElementById('clear-btn');
+    const leaveBtn = document.getElementById('leave-btn');
+    const onlineStatusDot = document.getElementById('online-status-dot');
+    const onlineStatusText = document.getElementById('online-status-text');
+    const typingIndicator = document.getElementById('typing-indicator');
 
-        async function handleSignup(e) {
-            e.preventDefault();
-            const username = signupForm.querySelector('#signup-username').value.trim();
-            const password = signupForm.querySelector('#signup-password').value.trim();
-            signupError.textContent = '';
-            
-            if (username.length < 3) {
-                signupError.textContent = 'Username must be at least 3 characters.';
-                return;
-            }
+    // UI helpers
+    function showAuthScreen(){ loadingScreen.classList.add('hidden'); authScreen.classList.remove('hidden'); dashboardScreen.classList.add('hidden'); chatScreen.classList.add('hidden'); log('UI => Auth'); }
+    function showDashboard(){ loadingScreen.classList.add('hidden'); authScreen.classList.add('hidden'); dashboardScreen.classList.remove('hidden'); chatScreen.classList.add('hidden'); displayRecentChats(); log('UI => Dashboard'); }
+    function showChatScreen(username, recipient){ loadingScreen.classList.add('hidden'); authScreen.classList.add('hidden'); dashboardScreen.classList.add('hidden'); chatScreen.classList.remove('hidden'); userDisplay.textContent = username; recipientDisplay.textContent = recipient; myChatPad.value=''; theirChatPad.value=''; myChatPad.focus(); log('UI => Chat'); }
 
-            // 1. Check if username is taken
-            const userQuery = query(collection(db, `/artifacts/${appId}/public/data/users`), where("username", "==", username));
-            const querySnap = await getDocs(userQuery);
-            if (!querySnap.empty) {
-                signupError.textContent = 'Username is already taken.';
-                return;
-            }
+    function toggleAuthForms(){ const showingSignup = !signupForm.classList.contains('hidden'); if (showingSignup){ signupForm.classList.add('hidden'); loginForm.classList.remove('hidden'); authToggleText.textContent = "Don't have an account?"; authToggleLink.textContent = 'Sign Up'; } else { loginForm.classList.add('hidden'); signupForm.classList.remove('hidden'); authToggleText.textContent = 'Already have an account?'; authToggleLink.textContent = 'Log In'; } }
 
-            // 2. Create auth user
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, `${username}@e2ee-chat.app`, password);
-                const user = userCredential.user;
+    // Boot
+    (async function init(){
+      log('Init start');
+      try {
+        app = initializeApp(firebaseConfig); log('Firebase app initialized');
+        db = getFirestore(app); log('Firestore ready');
+        // Try RTDB, but don't die if not enabled
+        try { rtdb = getDatabase(app); log('Realtime DB ready'); } catch(e){ warn('Realtime DB not ready (continuing without presence):', e); rtdb = null; }
+        auth = getAuth(app); log('Auth ready');
+      } catch(e){ err('Firebase init failed:', e); showAuthScreen(); return; }
 
-                // 3. Create user profile in Firestore (no unique code)
-                const userRef = doc(db, `/artifacts/${appId}/public/data/users`, user.uid);
-                await setDoc(userRef, {
-                    username: username,
-                    uid: user.uid,
-                    // removed uniqueCode
-                });
+      // Safety hatch: if auth never fires, show auth anyway after 3s
+      const authTimeout = setTimeout(()=>{ warn('Auth state took too long; showing Auth'); showAuthScreen(); }, 3000);
 
-                // App will auto-login via onAuthStateChanged
-            } catch (error)
-{
-                console.error("Signup error:", error);
-                signupError.textContent = error.message.replace('Firebase: ', '');
-            }
-        }
+      onAuthStateChanged(auth, async (user) => {
+        clearTimeout(authTimeout);
+        log('Auth state changed:', !!user);
+        if (user) { try{ await loadUserData(user.uid); showDashboard(); } catch(e){ err('loadUserData failed:', e); showAuthScreen(); } }
+        else { currentUser = null; showAuthScreen(); }
+      });
 
-        async function handleLogin(e) {
-            e.preventDefault();
-            const username = loginForm.querySelector('#login-username').value.trim();
-            const password = loginForm.querySelector('#login-password').value.trim();
-            loginError.textContent = '';
-            
-            try {
-                await signInWithEmailAndPassword(auth, `${username}@e2ee-chat.app`, password);
-                // App will auto-login via onAuthStateChanged
-            } catch (error) {
-                console.error("Login error:", error);
-                loginError.textContent = 'Invalid username or password.';
-            }
-        }
+      setupEventListeners();
+    })();
 
-        function toggleAuthForms() {
-            const isLogin = loginForm.classList.contains('hidden');
-            if (isLogin) {
-                loginForm.classList.remove('hidden');
-                signupForm.classList.add('hidden');
-                authToggleText.textContent = "Don't have an account?";
-                authToggleLink.textContent = 'Sign Up';
-            } else {
-                signupForm.classList.remove('hidden');
-                loginForm.classList.add('hidden');
-                authToggleText.textContent = 'Already have an account?';
-                authToggleLink.textContent = 'Log In';
-            }
-        }
+    // Users
+    async function loadUserData(uid){
+      log('loadUserData', uid);
+      const userRef = doc(db, `/artifacts/${APP_ID}/public/data/users`, uid);
+      const snap = await getDoc(userRef);
+      if (snap.exists()){ currentUser = { uid, ...snap.data() }; dashUsername.textContent = currentUser.username; log('User loaded', currentUser.username); }
+      else { warn('No user profile, signing out'); await signOut(auth); }
+    }
 
-        // --- UI Navigation ---
-        
-        function showLoadingScreen() {
-            loadingScreen.classList.remove('hidden');
-            authScreen.classList.add('hidden');
-            dashboardScreen.classList.add('hidden');
-            chatScreen.classList.add('hidden');
-        }
+    async function handleSignup(e){ e.preventDefault(); signupError.textContent=''; const username = document.getElementById('signup-username').value.trim(); const password = document.getElementById('signup-password').value.trim(); if (username.length < 3) { signupError.textContent = 'Username must be at least 3 characters.'; return; } const q = query(collection(db, `/artifacts/${APP_ID}/public/data/users`), where('username','==',username)); const qSnap = await getDocs(q); if (!qSnap.empty){ signupError.textContent = 'Username is taken.'; return; } try{ const cred = await createUserWithEmailAndPassword(auth, `${username}@e2ee-chat.app`, password); await setDoc(doc(db, `/artifacts/${APP_ID}/public/data/users`, cred.user.uid), { uid: cred.user.uid, username }); log('Signup OK'); }catch(e){ err('Signup error', e); signupError.textContent = (e.message||'Error').replace('Firebase: ',''); } }
 
-        function showAuthScreen() {
-            loadingScreen.classList.add('hidden');
-            authScreen.classList.remove('hidden');
-            dashboardScreen.classList.add('hidden');
-            chatScreen.classList.add('hidden');
-        }
-        
-        function showDashboard() {
-            loadingScreen.classList.add('hidden');
-            authScreen.classList.add('hidden');
-            dashboardScreen.classList.remove('hidden');
-            chatScreen.classList.add('hidden');
-            displayRecentChats();
-        }
-        
-        function showChatScreen(username, recipientUsername) {
-            loadingScreen.classList.add('hidden');
-            authScreen.classList.add('hidden');
-            dashboardScreen.classList.add('hidden');
-            chatScreen.classList.remove('hidden');
-            
-            userDisplay.textContent = username;
-            recipientDisplay.textContent = recipientUsername;
-            
-            // Reset pads
-            myChatPad.value = '';
-            theirChatPad.value = '';
-            myChatPad.focus();
-        }
+    async function handleLogin(e){ e.preventDefault(); loginError.textContent=''; const username = document.getElementById('login-username').value.trim(); const password = document.getElementById('login-password').value.trim(); try{ await signInWithEmailAndPassword(auth, `${username}@e2ee-chat.app`, password); log('Login OK'); } catch(e){ err('Login error', e); loginError.textContent = 'Invalid username or password.'; } }
 
-        // Removed Custom Modal Prompt
-        
-        // Removed Crypto Helper Functions
+    // Recents / Search
+    function getRecentChats(){ try{ return JSON.parse(localStorage.getItem('recentChats')||'[]'); }catch{return []} }
+    function saveRecentChat(u){ let chats = getRecentChats().filter(c=>c.uid!==u.uid); chats.unshift({uid:u.uid, username:u.username}); chats = chats.slice(0,5); localStorage.setItem('recentChats', JSON.stringify(chats)); }
+    function displayRecentChats(){ const list = getRecentChats(); if(!list.length){ recentChatsList.textContent='No recent chats.'; return; } recentChatsList.innerHTML=''; list.forEach(c=>{ const div=document.createElement('div'); div.className='flex justify-between items-center bg-[#2a2a2a] p-3 rounded-lg'; div.innerHTML=`<span class="font-medium">${c.username}</span><button class="btn-primary px-4 py-2 rounded-md text-sm">Chat</button>`; div.querySelector('button').addEventListener('click',()=>startChatByUid(c.uid,c.username)); recentChatsList.appendChild(div); }); }
 
-        // --- Dashboard & Search ---
-        
-        async function handleSearch() {
-            const username = searchInput.value.trim();
-            searchResults.innerHTML = '';
-            if (username === currentUser.username) {
-                searchResults.innerHTML = `<p class="text-yellow-400">You can't chat with yourself.</p>`;
-                return;
-            }
+    async function handleSearch(){ const uname = searchInput.value.trim(); searchResults.innerHTML=''; if(!uname) return; if (uname === currentUser.username){ searchResults.innerHTML = `<p class='text-yellow-400'>You can't chat with yourself.</p>`; return; } const q = query(collection(db, `/artifacts/${APP_ID}/public/data/users`), where('username','==',uname)); const snap = await getDocs(q); if (snap.empty){ searchResults.innerHTML = `<p class='text-red-400'>User not found.</p>`; } else { const r = snap.docs[0].data(); searchResults.innerHTML = `<div class='flex justify-between items-center bg-[#2a2a2a] p-3 rounded-lg'><span class='font-medium'>${r.username}</span><button id='start-chat-btn' class='btn-primary px-4 py-2 rounded-md'>Chat</button></div>`; document.getElementById('start-chat-btn').addEventListener('click',()=>startChatByUid(r.uid, r.username)); } }
 
-            const userQuery = query(collection(db, `/artifacts/${appId}/public/data/users`), where("username", "==", username));
-            const querySnap = await getDocs(userQuery);
-            
-            if (querySnap.empty) {
-                searchResults.innerHTML = `<p class="text-red-400">User not found.</p>`;
-            } else {
-                const recipient = querySnap.docs[0].data();
-                searchResults.innerHTML = `
-                    <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
-                        <span class="text-white">${recipient.username}</span>
-                        <button id="start-chat-btn" class="btn btn-primary px-4 py-2 rounded-md">Chat</button>
-                    </div>
-                `;
-                // Simplified: Just call handleInitiateChat
-                document.getElementById('start-chat-btn').addEventListener('click', () => handleInitiateChat(recipient));
-            }
-        }
-        
-        // --- THIS IS THE NEW, SIMPLIFIED CHAT STARTER ---
-        async function handleInitiateChat(recipient) {
-            searchResults.innerHTML = ''; // Clear search results
-            
-            // 1. Create the Room ID
-            const usernames = [currentUser.username, recipient.username].sort();
-            const roomId = usernames.join('-');
+    function roomIdFor(userA, userB){ return [userA, userB].sort().join('-'); }
 
-            try {
-                currentRoomId = roomId;
+    async function startChatByUid(recipientUid, recipientUsername){
+      log('Start chat with', recipientUsername);
+      const usernames = [currentUser.username, recipientUsername].sort();
+      currentRoomId = roomIdFor(currentUser.username, recipientUsername);
+      await initRoomIfMissing(currentRoomId, usernames, [currentUser.uid, recipientUid]);
+      saveRecentChat({uid: recipientUid, username: recipientUsername});
+      try { await setupCrypto(currentRoomId, recipientUid); } catch(e){ err('Crypto setup failed', e); alert('Crypto not available in this context. Use HTTPS.'); return; }
+      listenToRoom(currentRoomId, recipientUid);
+      setupPresence(currentRoomId);
+      showChatScreen(currentUser.username, recipientUsername);
+    }
 
-                // 2. Success! Save to recents and start chat
-                saveRecentChat(recipient); // Just saves uid and username
-                listenToRoom();
-                showChatScreen(currentUser.username, recipient.username);
+    async function initRoomIfMissing(roomId, usernames, uids){
+      const roomRef = doc(db, `/artifacts/${APP_ID}/public/data/e2ee-chat`, roomId);
+      const roomSnap = await getDoc(roomRef);
+      if (!roomSnap.exists()){
+        log('Creating room', roomId);
+        await setDoc(roomRef, {
+          participants: uids,
+          usernames,
+          createdAt: serverTimestamp(),
+          expiresAt: new Date(Date.now()+AUTO_DELETE_MINUTES*60*1000),
+          keys: {}, pads: {}, typing: {}, lastActive: serverTimestamp()
+        });
+      } else { log('Room exists'); }
+    }
 
-            } catch (error) {
-                console.error("Error starting chat:", error);
-                searchResults.innerHTML = `<p class="text-red-400">Could not start chat. An error occurred.</p>`;
-            }
-        }
-
-        // Removed decryptText
-
-        // --- Recent Chats Functions ---
-        
-        function getRecentChats() {
-            try {
-                const chats = localStorage.getItem('recentChats');
-                return chats ? JSON.parse(chats) : [];
-            } catch (e) {
-                return [];
-            }
-        }
-
-        function saveRecentChat(recipient) {
-            let chats = getRecentChats();
-            chats = chats.filter(chat => chat.uid !== recipient.uid);
-            chats.unshift({ uid: recipient.uid, username: recipient.username });
-            chats = chats.slice(0, 5);
-            localStorage.setItem('recentChats', JSON.stringify(chats));
-        }
-        
-        function deleteRecentChat(uid) {
-            let chats = getRecentChats();
-            chats = chats.filter(chat => chat.uid !== uid);
-            localStorage.setItem('recentChats', JSON.stringify(chats));
-            displayRecentChats();
-        }
-
-        function displayRecentChats() {
-            const chats = getRecentChats();
-            if (chats.length === 0) {
-                recentChatsList.innerHTML = `<p class="text-text-secondary">No recent chats.</p>`;
-                return;
-            }
-            
-            recentChatsList.innerHTML = '';
-            chats.forEach(chat => {
-                const item = document.createElement('div');
-                item.className = 'recent-chat-item';
-                item.innerHTML = `
-                    <span class="text-white font-medium">${chat.username}</span>
-                    <button class="btn btn-primary px-4 py-2 rounded-md text-sm">Chat</button>
-                `;
-                item.querySelector('button').addEventListener('click', () => {
-                    handleInitiateChat(chat); 
-                });
-                recentChatsList.appendChild(item);
-            });
-        }
-        
-
-        // --- Chat Room Functions ---
-
-        async function updateFirestoreContent(content) {
-            if (isUpdatingFromFirestore || !currentRoomId) return;
-            
-            // No encryption
-            const roomRef = doc(db, `/artifacts/${appId}/public/data/e2ee-chat`, currentRoomId);
-            
-            // Update only our part of the document
-            await setDoc(roomRef, {
-                [currentUser.uid]: content // Save plain text
-            }, { merge: true });
-        }
-
-        function listenToRoom() {
-            const roomRef = doc(db, `/artifacts/${appId}/public/data/e2ee-chat`, currentRoomId);
-            unsubscribeRoom = onSnapshot(roomRef, async (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    let theirContent = '';
-                    
-                    // Find the key that is NOT our own
-                    const otherUserKey = Object.keys(data).find(key => key !== currentUser.uid);
-                    
-                    if (otherUserKey && data[otherUserKey]) {
-                        // No decryption needed
-                        theirContent = data[otherUserKey];
-                    }
-                    
-                    isUpdatingFromFirestore = true;
-                    if (theirChatPad.value !== theirContent) {
-                        theirChatPad.value = theirContent;
-                    }
-                    isUpdatingFromFirestore = false;
-                }
-            });
-
-            // --- Presence ---
-            const presenceRef = doc(db, `/artifacts/${appId}/public/data/presence/${currentRoomId}/users`, currentUser.uid);
-            setDoc(presenceRef, { online: true });
-            
-            const recipientQuery = query(collection(db, `/artifacts/${appId}/public/data/presence/${currentRoomId}/users`));
-            unsubscribePresence = onSnapshot(recipientQuery, (snapshot) => {
-                let isOnline = false;
-                snapshot.forEach((doc) => {
-                    if (doc.id !== currentUser.uid && doc.data().online) {
-                        isOnline = true;
-                    }
-                });
-                
-                if (isOnline) {
-                    onlineStatusDot.classList.replace('status-offline', 'status-online');
-                    onlineStatusText.textContent = 'Online';
-                } else {
-                    onlineStatusDot.classList.replace('status-online', 'status-offline');
-                    onlineStatusText.textContent = 'Offline';
-                }
-            });
-        }
-
-        async function handleLeave() {
-            unsubscribeRoom();
-            unsubscribePresence();
-            
-            // Set self to offline
-            const presenceRef = doc(db, `/artifacts/${appId}/public/data/presence/${currentRoomId}/users`, currentUser.uid);
-            await setDoc(presenceRef, { online: false });
-
-            // Delete the entire chat document
-            const roomRef = doc(db, `/artifacts/${appId}/public/data/e2ee-chat`, currentRoomId);
-            await deleteDoc(roomRef);
-
-            currentRoomId = null;
-            
-            showDashboard();
-        }
-        
-        async function handleClear() {
-            // Only clears our own pad and syncs it
-            myChatPad.value = '';
-            await updateFirestoreContent('');
-        }
-
-        // --- Global Event Listeners ---
-        function setupEventListeners() {
-            signupForm.addEventListener('submit', handleSignup);
-            loginForm.addEventListener('submit', handleLogin);
-            authToggleLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleAuthForms();
-            });
-            
-            logoutBtn.addEventListener('click', () => signOut(auth));
-            
-            searchBtn.addEventListener('click', async () => {
-                const username = searchInput.value.trim();
-                searchResults.innerHTML = '';
-                if (username === currentUser.username) {
-                    searchResults.innerHTML = `<p class="text-yellow-400">You can't chat with yourself.</p>`;
-                    return;
-                }
-                const userQuery = query(collection(db, `/artifacts/${appId}/public/data/users`), where("username", "==", username));
-                const querySnap = await getDocs(userQuery);
-                if (querySnap.empty) {
-                    searchResults.innerHTML = `<p class="text-red-400">User not found.</p>`;
-                } else {
-                    const recipient = querySnap.docs[0].data();
-                    handleInitiateChat(recipient); // Call the main function
-                }
-            });
-            searchInput.addEventListener('keyup', (e) => e.key === 'Enter' && searchBtn.click());
-            
-            // Removed unique code copy listener
-            
-            leaveBtn.addEventListener('click', handleLeave);
-            clearBtn.addEventListener('click', handleClear);
-
-            myChatPad.addEventListener('input', () => {
-                updateFirestoreContent(myChatPad.value);
-            });
-        }
-
-        // --- Start App ---
-        init();
-
-    </script>
+    // Crypto
+    async function setupCrypto(roomId, recipientUid){
+      if (!
 </body>
 </html>
+
+<!--
+FIRESTORE SECURITY RULES (add in Firestore -> Rules)
+-----------------------------------------------
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isParticipant(room) {
+      return room.data.participants.hasAny([request.auth.uid])
+        || (room.data.participants.size() > 0 && room.data.participants[0] == request.auth.uid)
+        || (room.data.participants.size() > 1 && room.data.participants[1] == request.auth.uid);
+    }
+
+    match /artifacts/{app}/public/data {
+      match /users/{uid} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn() && request.auth.uid == uid;
+      }
+      match /e2ee-chat/{roomId} {
+        allow read, update, delete: if isSignedIn() && isParticipant(resource);
+        allow create: if isSignedIn();
+      }
+    }
+  }
+}
+
+REALTIME DATABASE RULES (Presence)
+----------------------------------
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null"
+  }
+}
+
+TTL AUTO-DELETE (Console setup required)
+----------------------------------------
+1) Firestore -> Settings -> TTL -> Enable TTL on field `expiresAt` for collection path `artifacts/veil-app/public/data/e2ee-chat`.
+2) This file keeps bumping `expiresAt` on activity, and shortens it on Leave(), so rooms vanish automatically.
+3) Note: Old backups may persist per Google's retention; for stricter privacy, prefer a WebRTC-only approach.
+
+NOTES
+-----
+- All pad content is encrypted client-side (AES-GCM 256). Firestore only stores ciphertext.
+- Shared key is derived via ECDH (P-256). Public keys published per user inside the room doc.
+- Presence uses Realtime Database with onDisconnect for reliability.
+- Typing indicator is lightweight via `typing.{uid}` boolean; pad sync remains full text for simplicity.
+- This is still a Firestore-based transport; for ZERO storage, switch to WebRTC data channels.
+-->
